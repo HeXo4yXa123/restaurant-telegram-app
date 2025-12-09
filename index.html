@@ -1,296 +1,120 @@
+<!-- COMPLETE MINI APP: files to drop into your repo
+Files included in this document:
+- index.html
+- styles.css
+- app.js
+- server.py
+- storage.json (example)
+- README_DEPLOY.md (instructions)
+
+
+Copy each section into a corresponding file in your GitHub repository.
+
+
+---
+
+
+=== index.html ===
+
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Мини Апка Ресторана</title>
-
-<style>
-    body {
-        margin: 0;
-        padding: 0;
-        background: #0f0f0f;
-        color: white;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        overflow-x: hidden;
-    }
-
-    header {
-        padding: 20px;
-        font-size: 22px;
-        font-weight: 700;
-    }
-
-    /* ==== Категории ===== */
-    .categories {
-        padding: 10px 20px;
-    }
-
-    .categories h2 {
-        margin-bottom: 10px;
-        font-size: 20px;
-        font-weight: 700;
-    }
-
-    .cat-list {
-        display: flex;
-        gap: 20px;
-        overflow-x: auto;
-        padding-bottom: 10px;
-    }
-
-    .cat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-width: 80px;
-        max-width: 80px;
-    }
-
-    .cat-icon {
-        width: 60px;
-        height: 60px;
-        background: #1d1d1d;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-    }
-
-    .cat-name {
-        margin-top: 6px;
-        font-size: 13px;
-        text-align: center;
-    }
-
-    /* ==== Фильтры ==== */
-    .filters {
-        display: flex;
-        gap: 10px;
-        padding: 10px 20px;
-        overflow-x: auto;
-    }
-
-    .filter-btn {
-        padding: 10px 16px;
-        border-radius: 30px;
-        background: #1d1d1d;
-        border: 1px solid #333;
-        font-size: 14px;
-        white-space: nowrap;
-    }
-
-    /* ==== Разделы ==== */
-    section {
-        padding: 10px 20px;
-    }
-
-    section h2 {
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-
-    /* ==== Рестораны ==== */
-    .restaurants {
-        display: flex;
-        gap: 15px;
-        overflow-x: auto;
-        padding-bottom: 10px;
-    }
-
-    .rest-card {
-        min-width: 140px;
-        background: #1d1d1d;
-        border-radius: 16px;
-        padding: 10px;
-        text-align: center;
-    }
-
-    .rest-logo {
-        background: white;
-        width: 100%;
-        height: 60px;
-        border-radius: 10px;
-        margin-bottom: 6px;
-    }
-
-    .rest-time {
-        font-size: 12px;
-        color: #5dd77c;
-        margin-top: 4px;
-    }
-
-    /* ==== Большие карточки ==== */
-    .big-card {
-        background: #1d1d1d;
-        border-radius: 18px;
-        overflow: hidden;
-        margin-bottom: 15px;
-        position: relative;
-    }
-
-    .big-card img {
-        width: 100%;
-        height: auto;
-    }
-
-    .big-card-info {
-        padding: 10px;
-    }
-
-    .big-card-title {
-        font-size: 18px;
-        font-weight: 600;
-        margin-bottom: 4px;
-    }
-
-    .big-card-time {
-        font-size: 14px;
-        color: #5dd77c;
-    }
-
-    .fav-btn {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        width: 34px;
-        height: 34px;
-        background: rgba(0,0,0,0.5);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-    }
-
-    /* ==== Нижнее меню ==== */
-    .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: #0f0f0f;
-        border-top: 1px solid #333;
-        display: flex;
-        justify-content: space-around;
-        padding: 10px 0;
-    }
-
-    .nav-item {
-        text-align: center;
-        font-size: 12px;
-        color: #aaa;
-    }
-
-    .nav-item.active {
-        color: #4cd964;
-    }
-
-</style>
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BLACK | GREEN — Mini App</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div class="app">
+<header class="topbar">
+<div class="logo">BLACK <span>•</span> GREEN</div>
+<div id="userWelcome" class="user-welcome">Гость</div>
+</header>
 
-<header>Категории блюд</header>
 
-<!-- === Категории === -->
-<div class="categories">
-    <h2>Категории блюд</h2>
+<main>
+<!-- Auth / role selection -->
+<section id="authSection" class="card auth-card">
+<h2>Вход</h2>
+<form id="authForm" class="auth-form">
+<input id="authName" type="text" placeholder="Имя" required />
+<input id="authUsername" type="text" placeholder="Логин (для менеджера/курьера)" />
+<input id="authPassword" type="password" placeholder="Пароль (для менеджера)" />
 
-    <div class="cat-list">
-        <div class="cat-item">
-            <div class="cat-icon"><img src="https://i.imgur.com/Q7sQqYB.png" width="55"></div>
-            <div class="cat-name">Фастфуд</div>
-        </div>
 
-        <div class="cat-item">
-            <div class="cat-icon"><img src="https://i.imgur.com/Y18sH0X.png" width="55"></div>
-            <div class="cat-name">Местная</div>
-        </div>
+<label class="select-label">Войти как</label>
+<select id="authRole">
+<option value="client">Клиент</option>
+<option value="manager">Менеджер</option>
+<option value="courier">Курьер</option>
+</select>
 
-        <div class="cat-item">
-            <div class="cat-icon"><img src="https://i.imgur.com/bwd44pV.png" width="55"></div>
-            <div class="cat-name">Грузинская</div>
-        </div>
 
-        <div class="cat-item">
-            <div class="cat-icon"><img src="https://i.imgur.com/d2yOsql.png" width="55"></div>
-            <div class="cat-name">Европа</div>
-        </div>
+<div class="auth-actions">
+<button id="authSubmit" type="submit">Войти</button>
+<button id="logoutBtn" type="button" class="ghost" style="display:none;">Выйти</button>
+</div>
+</form>
+</section>
 
-        <div class="cat-item">
-            <div class="cat-icon"><img src="https://i.imgur.com/L6Vn7Zn.png" width="55"></div>
-            <div class="cat-name">Восток</div>
-        </div>
-    </div>
+
+<!-- Products / customer -->
+<section id="customerPanel" class="card products-card" style="display:none;">
+<div class="header-row">
+<h3>Меню</h3>
+<button id="cartBtn" class="cart-button">Корзина (<span id="cartCount">0</span>)</button>
 </div>
 
-<!-- === ФИЛЬТРЫ === -->
+
+<div id="productsGrid" class="products-grid"></div>
+</section>
+
+
+<!-- Manager -->
+<section id="managerPanel" class="card manager-card" style="display:none;">
+<div class="manager-header">
+<h3>Панель менеджера</h3>
+<div class="manager-controls">
+<button id="refreshOrdersBtn">Обновить</button>
 <div class="filters">
-    <div class="filter-btn">⭐ Рейтинг</div>
-    <div class="filter-btn">🎁 Акции</div>
-    <div class="filter-btn">⏱ До 30 мин</div>
+<button class="status-filter active" data-status="all">Все</button>
+<button class="status-filter" data-status="new">Новые</button>
+<button class="status-filter" data-status="courier">Передано курьеру</button>
+<button class="status-filter" data-status="done">Завершённые</button>
+</div>
+</div>
 </div>
 
-<!-- === Популярные рестораны === -->
-<section>
-    <h2>Популярные рестораны</h2>
 
-    <div class="restaurants">
-        <div class="rest-card">
-            <div class="rest-logo"></div>
-            <div class="rest-time">15–25 мин</div>
-        </div>
-
-        <div class="rest-card">
-            <div class="rest-logo"></div>
-            <div class="rest-time">20–30 мин</div>
-        </div>
-
-        <div class="rest-card">
-            <div class="rest-logo"></div>
-            <div class="rest-time">25–30 мин</div>
-        </div>
-    </div>
+<div id="ordersList" class="orders-list"></div>
+<div id="emptyOrders" class="empty" style="display:none;">Заказов нет</div>
 </section>
 
-<!-- === Специально для вас === -->
-<section>
-    <h2>Специально для вас</h2>
 
-    <div class="big-card">
-        <img src="https://i.imgur.com/EgG6oCn.jpeg">
-        <div class="fav-btn">♡</div>
-        <div class="big-card-info">
-            <div class="big-card-title">SUNSET RESTAURANT ★ 4.7</div>
-            <div class="big-card-time">25–30 мин</div>
-        </div>
-    </div>
+<!-- Courier -->
+<section id="courierPanel" class="card courier-card" style="display:none;">
+<h3>Панель курьера</h3>
+<div id="courierOrders" class="orders-list"></div>
 </section>
 
-<!-- === Стоит попробовать === -->
-<section>
-    <h2>Стоит попробовать</h2>
 
-    <div class="big-card">
-        <img src="https://i.imgur.com/zlqR9DO.jpeg">
-        <div class="fav-btn">♡</div>
-        <div class="big-card-info">
-            <div class="big-card-title">Хачапури</div>
-            <div class="big-card-time">20–25 мин</div>
-        </div>
-    </div>
-</section>
-
-<!-- === Нижнее меню === -->
-<div class="bottom-nav">
-    <div class="nav-item active">Главная</div>
-    <div class="nav-item">Избранное</div>
-    <div class="nav-item">Корзина</div>
-    <div class="nav-item">Профиль</div>
+<!-- Cart panel (drawer) -->
+<aside id="cartPanel" class="cart-panel">
+<div class="cart-header">
+<h4>Корзина <span id="cartCountHeader">0</span></h4>
+<button id="closeCart">✕</button>
 </div>
+<div id="cartItems" class="cart-items"></div>
+<div class="cart-footer">
+<div>Итого: <strong id="totalPrice">0 ₽</strong></div>
+<button id="checkoutBtn">Оформить</button>
+</div>
+</aside>
 
-</body>
-</html>
+
+<!-- Order modal -->
+<div id="orderModal" class="modal">
+<div class="modal-body">
+<h3>Подтвердите заказ</h3>
+<div id="orderSummary" class="order-summary"></div>
