@@ -1,123 +1,140 @@
-// Frontend app logic. Put your PythonAnywhere username into API_BASE.
-const API_BASE = 'https://HeX04yXa.pythonanywhere.com'; // <-- REPLACE
+const API_BASE = "https://hex04yxa.pythonanywhere.com";
 
-
-let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-let appMode = 'client';
-let user = null;
-
-
-document.addEventListener('DOMContentLoaded', ()=>{
-setupEventListeners();
-renderProducts();
-updateCart();
-});
-
-
-function setupEventListeners(){
-document.getElementById('authForm').addEventListener('submit', async (e)=>{
-e.preventDefault();
-const name = document.getElementById('authName').value.trim();
-const username = document.getElementById('authUsername').value.trim();
-const password = document.getElementById('authPassword').value.trim();
-const role = document.getElementById('authRole').value;
-
-
-user = { name, username, role };
-document.getElementById('userWelcome').textContent = name || username || 'Гость';
-document.getElementById('logoutBtn').style.display = 'inline-block';
-
-
-if (role === 'client') switchToCustomer();
-if (role === 'manager') await managerLogin(username, password);
-if (role === 'courier') switchToCourier();
-});
-
-
-document.getElementById('cartBtn')?.addEventListener('click', toggleCart);
-document.getElementById('closeCart')?.addEventListener('click', toggleCart);
-document.getElementById('checkoutBtn')?.addEventListener('click', openOrderModal);
-document.getElementById('closeModal')?.addEventListener('click', closeOrderModal);
-document.getElementById('cancelOrder')?.addEventListener('click', closeOrderModal);
-document.getElementById('confirmOrder')?.addEventListener('click', confirmOrder);
-document.getElementById('refreshOrdersBtn')?.addEventListener('click', loadManagerOrders);
-document.getElementById('showClientBtn')?.addEventListener('click', ()=>{ switchToCustomer(); });
-document.getElementById('showManagerBtn')?.addEventListener('click', ()=>{ showLoginPanel(); });
-document.getElementById('showCourierBtn')?.addEventListener('click', ()=>{ switchToCourier(); });
-document.getElementById('cartBtnFooter')?.addEventListener('click', toggleCart);
-
-
-document.addEventListener('click', function(e){
-if (e.target.closest('.add-to-cart')){
-const id = +e.target.closest('.add-to-cart').dataset.id;
-addToCart(id);
-}
-
-
-if (e.target.closest('.remove-item')){
-const id = +e.target.closest('.remove-item').dataset.id;
-removeFromCart(id);
-}
-
-
-if (e.target.closest('.action-btn')){
-const btn = e.target.closest('.action-btn');
-const action = btn.dataset.action;
-const orderId = btn.dataset.orderId;
-updateOrderStatus(orderId, action);
-}
-});
-
-
-// status filters
-document.querySelectorAll('.status-filter').forEach(btn => btn.addEventListener('click', function(){ document.querySelectorAll('.status-filter').forEach(b=>b.classList.remove('active')); this.classList.add('active'); loadManagerOrders(); }));
-}
-
-
-// ---- products (example) ----
-const PRODUCTS = [
-{ id:1, name:'Пицца Маргарита', desc:'Томатный соус, моцарелла, базилик', price:450, icon:'🍕' },
-{ id:2, name:'Хачапури', desc:'Сырный хачапури по-аджарски', price:390, icon:'🥟' },
-{ id:3, name:'Бургер Классический', desc:'Говядина, сыр, соус', price:320, icon:'🍔' },
-{ id:4, name:'Matcha Latte', desc:'Матча с молоком', price:280, icon:'🥤' }
+let role = null;
+let cart = [];
+const products = [
+    {name: "Пицца Маргарита", price: 450},
+    {name: "Бургер", price: 320},
+    {name: "Суши сет", price: 900},
+    {name: "Паста", price: 500},
 ];
 
-
-function renderProducts(){
-const grid = document.getElementById('productsGrid');
-grid.innerHTML = PRODUCTS.map(p => `
-<div class="product-card">
-<div class="product-image">${p.icon}</div>
-<div class="product-content">
-<h4 class="product-title">${p.name}</h4>
-<p class="product-description">${p.desc}</p>
-<div class="product-footer">
-<div class="product-price">${p.price} ₽</div>
-<button class="add-to-cart" data-id="${p.id}">+</button>
-</div>
-</div>
-</div>
-`).join('');
+// --- Показ экранов ---
+function show(id) {
+    document.querySelectorAll(".screen").forEach(s => s.style.display = "none");
+    document.getElementById(id).style.display = "block";
 }
 
+function selectRole(r) {
+    role = r;
 
-// ---- cart ----
-function addToCart(productId){
-const p = PRODUCTS.find(x=>x.id===productId);
-if (!p) return;
-const existing = cart.find(i=>i.id===productId);
-if (existing) existing.quantity++;
-else cart.push({ id:p.id, name:p.name, price:p.price, quantity:1 });
-updateCart();
-showNotification(`${p.name} добавлен`,'success');
+    if (r === "client") {
+        loadMenu();
+        show("client-menu");
+    }
+    if (r === "manager") {
+        loadOrders();
+        show("manager-screen");
+    }
+    if (r === "courier") {
+        loadCourierOrders();
+        show("courier-screen");
+    }
 }
 
+// --- Клиент: меню ---
+function loadMenu() {
+    const list = document.getElementById("products");
+    list.innerHTML = "";
 
-function removeFromCart(productId){ cart = cart.filter(i=>i.id!==productId); updateCart(); }
+    products.forEach((p, i) => {
+        list.innerHTML += `
+            <div class="card">
+                <b>${p.name}</b><br>
+                ${p.price} ₽<br><br>
+                <button class="btn" onclick="addToCart(${i})">Добавить</button>
+            </div>`;
+    });
+}
 
+function addToCart(i) {
+    cart.push(products[i]);
+    alert("Добавлено в корзину");
+}
 
-function updateQuantity(productId, delta){ const it = cart.find(i=>i.id===productId); if(!it) return; it.quantity+=delta; if(it.quantity<=0) removeFromCart(productId); else updateCart(); }
+function openCart() {
+    const block = document.getElementById("cart-items");
+    block.innerHTML = "";
 
+    cart.forEach(p => {
+        block.innerHTML += `<div class="card">${p.name} — ${p.price} ₽</div>`;
+    });
 
-function updateCart(){ localStorage.setItem('cart', JSON.stringify(cart)); const totalItems = cart.reduce((s,i)=>s+i.quantity,0); document.getElementById('cartCount').textContent = totalItems; document.getElementById('cartCountHeader').textContent = totalItems; renderCartItems(); updateTotalPrice(); }
+    show("cart-screen");
+}
 
+function backToMenu() {
+    show("client-menu");
+}
+
+// --- Отправка заказа ---
+async function sendOrder() {
+    const phone = document.getElementById("client-phone").value;
+    const address = document.getElementById("client-address").value;
+
+    if (!phone || !address || cart.length === 0) {
+        alert("Заполните все поля!");
+        return;
+    }
+
+    const orderText = cart.map(c => `${c.name} (${c.price} ₽)`).join(", ");
+    const total = cart.reduce((a, b) => a + b.price, 0);
+
+    const body = {
+        phone,
+        address,
+        order: orderText,
+        amount: total
+    };
+
+    const res = await fetch(API_BASE + "/create_order", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    alert(data.message);
+
+    cart = [];
+    show("client-menu");
+}
+
+// --- Менеджер: получить заказы ---
+async function loadOrders() {
+    const res = await fetch(API_BASE + "/orders");
+    const data = await res.json();
+
+    const box = document.getElementById("orders-list");
+    box.innerHTML = "";
+
+    data.forEach(o => {
+        box.innerHTML += `
+            <div class="card">
+                <b>${o.id}</b><br>
+                ${o.phone}<br>
+                ${o.address}<br>
+                ${o.order}<br>
+                <b>${o.amount} ₽</b><br>
+                Статус: ${o.status}
+            </div>`;
+    });
+}
+
+// --- Курьер ---
+async function loadCourierOrders() {
+    const res = await fetch(API_BASE + "/courier_orders");
+    const data = await res.json();
+
+    const box = document.getElementById("courier-orders");
+    box.innerHTML = "";
+
+    data.forEach(o => {
+        box.innerHTML += `
+            <div class="card">
+                <b>${o.id}</b><br>
+                ${o.address}<br>
+                Заказ: ${o.order}
+            </div>`;
+    });
+}
