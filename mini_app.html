@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BBQ - Telegram Mini App</title>
+    <style>
+        :root {
+            --tg-theme-bg-color: #efeff3;
+            --tg-theme-text-color: #000000;
+            --tg-theme-button-color: #4CAF50;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            transition: background 0.3s;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: #FF5722;
+        }
+        
+        .menu-grid {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 100px;
+        }
+        
+        .menu-item {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .menu-item:hover {
+            transform: translateY(-2px);
+        }
+        
+        .item-info h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        
+        .item-info p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .price {
+            font-weight: bold;
+            color: #4CAF50;
+            font-size: 18px;
+        }
+        
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .qty-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: #4CAF50;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        .quantity {
+            font-weight: bold;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        .cart-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .cart-info {
+            font-weight: bold;
+        }
+        
+        .checkout-btn {
+            background: var(--tg-theme-button-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .checkout-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        /* Анимации */
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        .checkout-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s;
+            z-index: 1000;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        
+        /* Telegram стили */
+        .tg-theme-dark body {
+            --tg-theme-bg-color: #1c1c1d;
+            --tg-theme-text-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍖 BBQ Ресторан</h1>
+            <p>Заказывайте прямо в Telegram!</p>
+        </div>
+        
+        <div class="menu-grid" id="menu">
+            <!-- Меню будет загружено через JS -->
+        </div>
+        
+        <div class="cart-footer" id="cartFooter" style="display: none;">
+            <div class="cart-info">
+                <span id="cartCount">0</span> товаров · <span id="cartTotal">0</span> ₽
+            </div>
+            <button class="checkout-btn" onclick="openCheckout()">
+                🚀 Оформить
+            </button>
+        </div>
+    </div>
+    
+    <div class="checkout-modal" id="checkoutModal" style="display: none;">
+        <h3>📝 Оформление заказа</h3>
+        <div class="form-group">
+            <input type="text" id="address" placeholder="Адрес доставки">
+        </div>
+        <div class="form-group">
+            <input type="tel" id="phone" placeholder="Телефон">
+        </div>
+        <button class="checkout-btn" onclick="submitOrder()" style="width: 100%;">
+            ✅ Отправить заказ в Telegram
+        </button>
+        <button onclick="closeCheckout()" style="width: 100%; margin-top: 10px; background: #f5f5f5; color: #333;">
+            Отмена
+        </button>
+    </div>
+    
+    <script>
+        // Telegram Web App API
+        const tg = window.Telegram.WebApp;
+        
+        // Инициализация Telegram Web App
+        tg.expand(); // Раскрываем на весь экран
+        tg.MainButton.setText("Оформить заказ"); // Устанавливаем текст кнопки
+        tg.MainButton.hide();
+        
+        // Меню ресторана
+        const menuItems = [
+            { id: 1, name: "🍕 Пицца Маргарита", price: 450, desc: "Моцарелла, томаты" },
+            { id: 2, name: "🍕 Пицца Пепперони", price: 550, desc: "Острая колбаска" },
+            { id: 3, name: "🍖 Стейк Рибай", price: 890, desc: "300г, medium rare" },
+            { id: 4, name: "🥤 Cola 0.5л", price: 150, desc: "Освежающий напиток" }
+        ];
+        
+        // Корзина
+        let cart = {};
+        let total = 0;
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            renderMenu();
+            updateCartUI();
+        });
+        
+        // Рендерим меню
+        function renderMenu() {
+            const menuContainer = document.getElementById('menu');
+            menuContainer.innerHTML = '';
+            
+            menuItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'menu-item';
+                div.innerHTML = `
+                    <div class="item-info">
+                        <h3>${item.name}</h3>
+                        <p>${item.desc}</p>
+                        <div class="quantity-controls">
+                            <button class="qty-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
+                            <span class="quantity" id="qty-${item.id}">0</span>
+                            <button class="qty-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="price">${item.price} ₽</div>
+                `;
+                menuContainer.appendChild(div);
+            });
+        }
+        
+        // Обновление количества
+        function updateQuantity(itemId, delta) {
+            if (!cart[itemId]) {
+                cart[itemId] = 0;
+            }
+            
+            cart[itemId] += delta;
+            
+            if (cart[itemId] < 0) {
+                cart[itemId] = 0;
+            }
+            
+            // Обновляем отображение
+            document.getElementById(`qty-${itemId}`).textContent = cart[itemId];
+            updateCartUI();
+        }
+        
+        // Обновление корзины
+        function updateCartUI() {
+            // Подсчет
+            let count = 0;
+            total = 0;
+            
+            for (const itemId in cart) {
+                if (cart[itemId] > 0) {
+                    count += cart[itemId];
+                    const item = menuItems.find(i => i.id == itemId);
+                    total += cart[itemId] * item.price;
+                }
+            }
+            
+            // Обновление UI
+            document.getElementById('cartCount').textContent = count;
+            document.getElementById('cartTotal').textContent = total;
+            
+            const cartFooter = document.getElementById('cartFooter');
+            if (count > 0) {
+                cartFooter.style.display = 'flex';
+                tg.MainButton.show();
+            } else {
+                cartFooter.style.display = 'none';
+                tg.MainButton.hide();
+            }
+        }
+        
+        // Открыть оформление заказа
+        function openCheckout() {
+            document.getElementById('checkoutModal').style.display = 'block';
+        }
+        
+        // Закрыть оформление
+        function closeCheckout() {
+            document.getElementById('checkoutModal').style.display = 'none';
+        }
+        
+        // Отправить заказ в Telegram
+        function submitOrder() {
+            const address = document.getElementById('address').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            
+            if (!address || !phone) {
+                alert('Заполните адрес и телефон');
+                return;
+            }
+            
+            if (total === 0) {
+                alert('Добавьте товары в корзину');
+                return;
+            }
+            
+            // Собираем данные заказа
+            const orderItems = [];
+            for (const itemId in cart) {
+                if (cart[itemId] > 0) {
+                    const item = menuItems.find(i => i.id == itemId);
+                    orderItems.push({
+                        id: itemId,
+                        name: item.name,
+                        price: item.price,
+                        quantity: cart[itemId]
+                    });
+                }
+            }
+            
+            const orderData = {
+                address: address,
+                phone: phone,
+                items: orderItems,
+                total: total,
+                timestamp: new Date().toISOString()
+            };
+            
+            console.log('Отправка заказа:', orderData);
+            
+            // Отправляем данные в Telegram
+            tg.sendData(JSON.stringify(orderData));
+            
+            // Показываем подтверждение
+            alert('🎉 Заказ отправлен! Вернитесь в чат.');
+            
+            // Закрываем Mini App
+            tg.close();
+        }
+        
+        // Обработка нажатия кнопки Telegram
+        tg.MainButton.onClick(submitOrder);
+        
+        // Адаптация под тему Telegram
+        if (tg.colorScheme === 'dark') {
+            document.body.classList.add('tg-theme-dark');
+        }
+    </script>
+</body>
+</html>
