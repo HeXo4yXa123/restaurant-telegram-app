@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Delivery</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Экран загрузки -->
+    <div id="loading" class="screen">
+        <div class="loader"></div>
+        <p>Загрузка...</p>
+    </div>
+
+    <!-- Главный экран -->
+    <div id="main-screen" class="screen hidden">
+        <header>
+            <div class="logo">
+                <i class="fas fa-utensils"></i>
+                <h1>FoodDelivery</h1>
+            </div>
+            <div class="user-actions">
+                <button id="cart-btn" class="icon-btn">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span id="cart-count">0</span>
+                </button>
+                <button id="login-btn" class="btn secondary">Вход</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Каталог товаров -->
+            <section id="catalog" class="section">
+                <h2><i class="fas fa-list"></i> Меню</h2>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search" placeholder="Поиск блюд...">
+                </div>
+                <div class="category-tabs">
+                    <button class="category-btn active" data-category="all">Все</button>
+                    <button class="category-btn" data-category="pizza">Пицца</button>
+                    <button class="category-btn" data-category="burger">Бургеры</button>
+                    <button class="category-btn" data-category="sushi">Суши</button>
+                    <button class="category-btn" data-category="drinks">Напитки</button>
+                </div>
+                <div id="products-grid" class="products-grid">
+                    <!-- Продукты загружаются через JS -->
+                </div>
+            </section>
+
+            <!-- Корзина (скрыта по умолчанию) -->
+            <section id="cart-section" class="section hidden">
+                <div class="cart-header">
+                    <button id="back-to-catalog" class="back-btn">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </button>
+                    <h2><i class="fas fa-shopping-cart"></i> Корзина</h2>
+                </div>
+                <div id="cart-items" class="cart-items">
+                    <!-- Товары в корзине -->
+                </div>
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Итого:</span>
+                        <span id="cart-total">0 ₽</span>
+                    </div>
+                    <button id="checkout-btn" class="btn primary">Оформить заказ</button>
+                </div>
+            </section>
+
+            <!-- Оформление заказа -->
+            <section id="checkout-section" class="section hidden">
+                <div class="checkout-header">
+                    <button id="back-to-cart" class="back-btn">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </button>
+                    <h2><i class="fas fa-receipt"></i> Оформление заказа</h2>
+                </div>
+                <form id="checkout-form">
+                    <div class="form-group">
+                        <label for="name"><i class="fas fa-user"></i> Имя *</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone"><i class="fas fa-phone"></i> Телефон *</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address"><i class="fas fa-home"></i> Адрес доставки *</label>
+                        <textarea id="address" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="comment"><i class="fas fa-comment"></i> Комментарий к заказу</label>
+                        <textarea id="comment" rows="2"></textarea>
+                    </div>
+                    <div class="order-summary">
+                        <h3><i class="fas fa-clipboard-list"></i> Ваш заказ</h3>
+                        <div id="order-review"></div>
+                        <div class="total-row">
+                            <strong>К оплате:</strong>
+                            <strong id="order-total">0 ₽</strong>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn primary">
+                        <i class="fas fa-paper-plane"></i> Подтвердить заказ
+                    </button>
+                </form>
+            </section>
+
+            <!-- Панель менеджера/курьера -->
+            <section id="admin-section" class="section hidden">
+                <div class="admin-header">
+                    <button id="logout-btn" class="btn secondary">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </button>
+                    <h2 id="admin-title"></h2>
+                </div>
+                <div id="admin-panel">
+                    <!-- Контент зависит от роли -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Уведомления -->
+        <div id="notification" class="notification hidden">
+            <span id="notification-text"></span>
+        </div>
+    </div>
+
+    <!-- Модальное окно входа -->
+    <div id="login-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2><i class="fas fa-lock"></i> Вход в систему</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="role">Роль:</label>
+                    <select id="role">
+                        <option value="customer">Клиент</option>
+                        <option value="manager">Менеджер</option>
+                        <option value="courier">Курьер</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="password">Пароль:</label>
+                    <input type="password" id="password" placeholder="Введите пароль">
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" id="cancel-login" class="btn secondary">Отмена</button>
+                    <button type="submit" class="btn primary">Войти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения -->
+    <div id="confirm-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="confirm-title"></h2>
+            <p id="confirm-message"></p>
+            <div class="modal-buttons">
+                <button id="confirm-cancel" class="btn secondary">Отмена</button>
+                <button id="confirm-ok" class="btn primary">ОК</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
