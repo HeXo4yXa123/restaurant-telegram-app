@@ -1,120 +1,53 @@
-<!-- COMPLETE MINI APP: files to drop into your repo
-Files included in this document:
-- index.html
-- styles.css
-- app.js
-- server.py
-- storage.json (example)
-- README_DEPLOY.md (instructions)
-
-
-Copy each section into a corresponding file in your GitHub repository.
-
-
----
-
-
-=== index.html ===
-
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>BLACK | GREEN — Mini App</title>
-<link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ресторан — Заказ</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-<div class="app">
-<header class="topbar">
-<div class="logo">BLACK <span>•</span> GREEN</div>
-<div id="userWelcome" class="user-welcome">Гость</div>
-</header>
 
-
-<main>
-<!-- Auth / role selection -->
-<section id="authSection" class="card auth-card">
-<h2>Вход</h2>
-<form id="authForm" class="auth-form">
-<input id="authName" type="text" placeholder="Имя" required />
-<input id="authUsername" type="text" placeholder="Логин (для менеджера/курьера)" />
-<input id="authPassword" type="password" placeholder="Пароль (для менеджера)" />
-
-
-<label class="select-label">Войти как</label>
-<select id="authRole">
-<option value="client">Клиент</option>
-<option value="manager">Менеджер</option>
-<option value="courier">Курьер</option>
-</select>
-
-
-<div class="auth-actions">
-<button id="authSubmit" type="submit">Войти</button>
-<button id="logoutBtn" type="button" class="ghost" style="display:none;">Выйти</button>
-</div>
-</form>
-</section>
-
-
-<!-- Products / customer -->
-<section id="customerPanel" class="card products-card" style="display:none;">
-<div class="header-row">
-<h3>Меню</h3>
-<button id="cartBtn" class="cart-button">Корзина (<span id="cartCount">0</span>)</button>
+<!-- Выбор роли -->
+<div class="screen" id="role-screen">
+    <h2>Вход</h2>
+    <button class="btn" onclick="selectRole('client')">Я клиент</button>
+    <button class="btn" onclick="selectRole('manager')">Я менеджер</button>
+    <button class="btn" onclick="selectRole('courier')">Я курьер</button>
 </div>
 
-
-<div id="productsGrid" class="products-grid"></div>
-</section>
-
-
-<!-- Manager -->
-<section id="managerPanel" class="card manager-card" style="display:none;">
-<div class="manager-header">
-<h3>Панель менеджера</h3>
-<div class="manager-controls">
-<button id="refreshOrdersBtn">Обновить</button>
-<div class="filters">
-<button class="status-filter active" data-status="all">Все</button>
-<button class="status-filter" data-status="new">Новые</button>
-<button class="status-filter" data-status="courier">Передано курьеру</button>
-<button class="status-filter" data-status="done">Завершённые</button>
-</div>
-</div>
+<!-- Экран клиента -->
+<div class="screen" id="client-menu">
+    <h2>Меню</h2>
+    <div id="products"></div>
+    <button class="btn" onclick="openCart()">Корзина</button>
 </div>
 
+<!-- Корзина -->
+<div class="screen" id="cart-screen">
+    <h2>Корзина</h2>
+    <div id="cart-items"></div>
 
-<div id="ordersList" class="orders-list"></div>
-<div id="emptyOrders" class="empty" style="display:none;">Заказов нет</div>
-</section>
+    <input id="client-phone" class="input" placeholder="Телефон">
+    <input id="client-address" class="input" placeholder="Адрес">
 
-
-<!-- Courier -->
-<section id="courierPanel" class="card courier-card" style="display:none;">
-<h3>Панель курьера</h3>
-<div id="courierOrders" class="orders-list"></div>
-</section>
-
-
-<!-- Cart panel (drawer) -->
-<aside id="cartPanel" class="cart-panel">
-<div class="cart-header">
-<h4>Корзина <span id="cartCountHeader">0</span></h4>
-<button id="closeCart">✕</button>
+    <button class="btn" onclick="sendOrder()">Отправить заказ</button>
+    <button class="btn btn-gray" onclick="backToMenu()">Назад</button>
 </div>
-<div id="cartItems" class="cart-items"></div>
-<div class="cart-footer">
-<div>Итого: <strong id="totalPrice">0 ₽</strong></div>
-<button id="checkoutBtn">Оформить</button>
+
+<!-- Менеджер: список заказов -->
+<div class="screen" id="manager-screen">
+    <h2>Заказы</h2>
+    <div id="orders-list"></div>
 </div>
-</aside>
 
+<!-- Курьер: доставка -->
+<div class="screen" id="courier-screen">
+    <h2>Доставки</h2>
+    <div id="courier-orders"></div>
+</div>
 
-<!-- Order modal -->
-<div id="orderModal" class="modal">
-<div class="modal-body">
-<h3>Подтвердите заказ</h3>
-<div id="orderSummary" class="order-summary"></div>
+<script src="app.js"></script>
+</body>
+</html>
