@@ -1,293 +1,296 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🍽️ BLACK | GREEN Restaurant</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мини Апка Ресторана</title>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: #0f0f0f;
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        overflow-x: hidden;
+    }
+
+    header {
+        padding: 20px;
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    /* ==== Категории ===== */
+    .categories {
+        padding: 10px 20px;
+    }
+
+    .categories h2 {
+        margin-bottom: 10px;
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .cat-list {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+
+    .cat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 80px;
+        max-width: 80px;
+    }
+
+    .cat-icon {
+        width: 60px;
+        height: 60px;
+        background: #1d1d1d;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .cat-name {
+        margin-top: 6px;
+        font-size: 13px;
+        text-align: center;
+    }
+
+    /* ==== Фильтры ==== */
+    .filters {
+        display: flex;
+        gap: 10px;
+        padding: 10px 20px;
+        overflow-x: auto;
+    }
+
+    .filter-btn {
+        padding: 10px 16px;
+        border-radius: 30px;
+        background: #1d1d1d;
+        border: 1px solid #333;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    /* ==== Разделы ==== */
+    section {
+        padding: 10px 20px;
+    }
+
+    section h2 {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    /* ==== Рестораны ==== */
+    .restaurants {
+        display: flex;
+        gap: 15px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+
+    .rest-card {
+        min-width: 140px;
+        background: #1d1d1d;
+        border-radius: 16px;
+        padding: 10px;
+        text-align: center;
+    }
+
+    .rest-logo {
+        background: white;
+        width: 100%;
+        height: 60px;
+        border-radius: 10px;
+        margin-bottom: 6px;
+    }
+
+    .rest-time {
+        font-size: 12px;
+        color: #5dd77c;
+        margin-top: 4px;
+    }
+
+    /* ==== Большие карточки ==== */
+    .big-card {
+        background: #1d1d1d;
+        border-radius: 18px;
+        overflow: hidden;
+        margin-bottom: 15px;
+        position: relative;
+    }
+
+    .big-card img {
+        width: 100%;
+        height: auto;
+    }
+
+    .big-card-info {
+        padding: 10px;
+    }
+
+    .big-card-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .big-card-time {
+        font-size: 14px;
+        color: #5dd77c;
+    }
+
+    .fav-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 34px;
+        height: 34px;
+        background: rgba(0,0,0,0.5);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+
+    /* ==== Нижнее меню ==== */
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #0f0f0f;
+        border-top: 1px solid #333;
+        display: flex;
+        justify-content: space-around;
+        padding: 10px 0;
+    }
+
+    .nav-item {
+        text-align: center;
+        font-size: 12px;
+        color: #aaa;
+    }
+
+    .nav-item.active {
+        color: #4cd964;
+    }
+
+</style>
+
 </head>
 <body>
-    <!-- Главный контейнер -->
-    <div class="app-container" id="appContainer">
-        
-        <!-- ===== РЕЖИМ КЛИЕНТА ===== -->
-        <div id="customerPanel">
-            <!-- Шапка приложения -->
-            <header class="app-header">
-                <div class="header-top">
-                    <button class="icon-btn" id="managerSwitchBtn">
-                        <i class="fas fa-user-tie"></i>
-                    </button>
-                    <div class="logo">
-                        <i class="fas fa-utensils"></i>
-                        <span>BLACK | GREEN</span>
-                    </div>
-                    <button class="icon-btn cart-btn" id="cartBtn">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="badge" id="cartCount">0</span>
-                    </button>
-                </div>
-                
-                <div class="user-welcome" id="userWelcome">
-                    <i class="fas fa-user-circle"></i>
-                    <span>Добро пожаловать!</span>
-                </div>
-            </header>
 
-            <!-- Баннер -->
-            <div class="banner">
-                <div class="banner-content">
-                    <h2>Экспресс-доставка</h2>
-                    <p>За 30 минут или заказ бесплатно</p>
-                </div>
-                <div class="banner-icon">
-                    <i class="fas fa-bolt"></i>
-                </div>
-            </div>
+<header>Категории блюд</header>
 
-            <!-- Категории -->
-            <nav class="categories">
-                <button class="category-btn active" data-category="all">
-                    <i class="fas fa-th-large"></i>
-                    <span>Все</span>
-                </button>
-                <button class="category-btn" data-category="pizza">
-                    <i class="fas fa-pizza-slice"></i>
-                    <span>Пицца</span>
-                </button>
-                <button class="category-btn" data-category="burger">
-                    <i class="fas fa-hamburger"></i>
-                    <span>Бургеры</span>
-                </button>
-                <button class="category-btn" data-category="drink">
-                    <i class="fas fa-glass-whiskey"></i>
-                    <span>Напитки</span>
-                </button>
-                <button class="category-btn" data-category="dessert">
-                    <i class="fas fa-ice-cream"></i>
-                    <span>Десерты</span>
-                </button>
-            </nav>
+<!-- === Категории === -->
+<div class="categories">
+    <h2>Категории блюд</h2>
 
-            <!-- Список блюд -->
-            <main class="products-grid" id="productsGrid">
-                <!-- Продукты загружаются через JavaScript -->
-            </main>
+    <div class="cat-list">
+        <div class="cat-item">
+            <div class="cat-icon"><img src="https://i.imgur.com/Q7sQqYB.png" width="55"></div>
+            <div class="cat-name">Фастфуд</div>
         </div>
 
-        <!-- ===== РЕЖИМ МЕНЕДЖЕРА ===== -->
-        <div id="managerPanel" style="display: none;">
-            <!-- Шапка менеджера -->
-            <header class="manager-header">
-                <div class="header-top">
-                    <button class="icon-btn" id="customerSwitchBtn">
-                        <i class="fas fa-arrow-left"></i>
-                    </button>
-                    <div class="logo">
-                        <i class="fas fa-user-tie"></i>
-                        <span>ПАНЕЛЬ УПРАВЛЕНИЯ</span>
-                    </div>
-                    <button class="icon-btn" id="refreshOrdersBtn">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-                
-                <div class="manager-stats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="statNew">0</div>
-                        <div class="stat-label">Новых</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="statToday">0</div>
-                        <div class="stat-label">Сегодня</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="statRevenue">0 ₽</div>
-                        <div class="stat-label">Выручка</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="statActive">0</div>
-                        <div class="stat-label">Активных</div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Фильтры статусов -->
-            <nav class="status-filters">
-                <button class="status-filter active" data-status="all">
-                    <span>Все</span>
-                </button>
-                <button class="status-filter" data-status="new">
-                    <span>Новые</span>
-                </button>
-                <button class="status-filter" data-status="active">
-                    <span>В работе</span>
-                </button>
-                <button class="status-filter" data-status="completed">
-                    <span>Завершённые</span>
-                </button>
-            </nav>
-
-            <!-- Список заказов -->
-            <main class="orders-list" id="ordersList">
-                <!-- Заказы загружаются через JavaScript -->
-                <div class="empty-state" id="emptyOrders">
-                    <i class="fas fa-clipboard-list"></i>
-                    <p>Заказов нет</p>
-                </div>
-            </main>
+        <div class="cat-item">
+            <div class="cat-icon"><img src="https://i.imgur.com/Y18sH0X.png" width="55"></div>
+            <div class="cat-name">Местная</div>
         </div>
 
-        <!-- ===== ПАНЕЛЬ ВХОДА МЕНЕДЖЕРА ===== -->
-        <div id="loginPanel" style="display: none;">
-            <div class="login-container">
-                <div class="login-header">
-                    <div class="logo">
-                        <i class="fas fa-user-tie"></i>
-                        <span>ВХОД МЕНЕДЖЕРА</span>
-                    </div>
-                    <p class="login-subtitle">BLACK | GREEN Restaurant</p>
-                </div>
-                
-                <div class="login-form">
-                    <div class="input-group">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" 
-                               id="managerPassword" 
-                               placeholder="Введите пароль"
-                               onkeypress="if(event.key === 'Enter') loginAsManager()">
-                    </div>
-                    
-                    <button class="btn-primary" onclick="loginAsManager()">
-                        <i class="fas fa-sign-in-alt"></i>
-                        ВОЙТИ
-                    </button>
-                    
-                    <button class="btn-secondary" onclick="switchToCustomer()">
-                        <i class="fas fa-utensils"></i>
-                        Я КЛИЕНТ
-                    </button>
-                </div>
-                
-                <div class="login-footer">
-                    <p><i class="fas fa-info-circle"></i> Только для персонала</p>
-                </div>
-            </div>
+        <div class="cat-item">
+            <div class="cat-icon"><img src="https://i.imgur.com/bwd44pV.png" width="55"></div>
+            <div class="cat-name">Грузинская</div>
         </div>
 
-        <!-- ===== КОРЗИНА ===== -->
-        <div class="cart-panel" id="cartPanel">
-            <div class="cart-header">
-                <h3><i class="fas fa-shopping-cart"></i> КОРЗИНА</h3>
-                <button class="icon-btn" id="closeCart">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div class="cart-items" id="cartItems">
-                <!-- Товары в корзине -->
-                <div class="empty-cart" id="emptyCart">
-                    <i class="fas fa-shopping-basket"></i>
-                    <p>Корзина пуста</p>
-                </div>
-            </div>
-            
-            <div class="cart-footer">
-                <div class="cart-total">
-                    <span>ИТОГО:</span>
-                    <span class="total-price" id="totalPrice">0 ₽</span>
-                </div>
-                <button class="btn-primary" id="checkoutBtn">
-                    <i class="fas fa-credit-card"></i>
-                    ОФОРМИТЬ ЗАКАЗ
-                </button>
-            </div>
+        <div class="cat-item">
+            <div class="cat-icon"><img src="https://i.imgur.com/d2yOsql.png" width="55"></div>
+            <div class="cat-name">Европа</div>
         </div>
 
-        <!-- ===== МОДАЛЬНОЕ ОКНО ОФОРМЛЕНИЯ ===== -->
-        <div class="modal" id="orderModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-clipboard-check"></i> ОФОРМЛЕНИЕ</h3>
-                    <button class="icon-btn" id="closeModal">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label><i class="fas fa-map-marker-alt"></i> АДРЕС ДОСТАВКИ</label>
-                        <input type="text" id="address" placeholder="ул. Примерная, д. 1" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-phone"></i> ТЕЛЕФОН</label>
-                        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-comment"></i> КОММЕНТАРИЙ</label>
-                        <textarea id="comment" placeholder="Дополнительные пожелания..." rows="2"></textarea>
-                    </div>
-                    
-                    <div class="order-summary">
-                        <h4><i class="fas fa-receipt"></i> ВАШ ЗАКАЗ:</h4>
-                        <div id="orderSummary">
-                            <!-- Содержимое заказа -->
-                        </div>
-                        <div class="final-total">
-                            <strong>К ОПЛАТЕ:</strong>
-                            <strong id="finalTotal">0 ₽</strong>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-footer">
-                    <button class="btn-secondary" id="cancelOrder">
-                        ОТМЕНА
-                    </button>
-                    <button class="btn-primary" id="confirmOrder">
-                        <i class="fas fa-check"></i>
-                        ПОДТВЕРДИТЬ
-                    </button>
-                </div>
-            </div>
+        <div class="cat-item">
+            <div class="cat-icon"><img src="https://i.imgur.com/L6Vn7Zn.png" width="55"></div>
+            <div class="cat-name">Восток</div>
         </div>
-
-        <!-- ===== МОДАЛЬНОЕ ОКНО ДЕТАЛЕЙ ЗАКАЗА (для менеджера) ===== -->
-        <div class="modal" id="orderDetailModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-info-circle"></i> ДЕТАЛИ ЗАКАЗА</h3>
-                    <button class="icon-btn" id="closeDetailModal">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <div class="modal-body" id="orderDetailContent">
-                    <!-- Детали заказа -->
-                </div>
-                
-                <div class="modal-footer" id="orderDetailActions">
-                    <!-- Кнопки действий -->
-                </div>
-            </div>
-        </div>
-
-        <!-- ===== УВЕДОМЛЕНИЯ ===== -->
-        <div class="notification" id="notification">
-            <span id="notificationText"></span>
-        </div>
-
-        <!-- ===== ОВЕРЛЕЙ ===== -->
-        <div class="overlay" id="overlay"></div>
-
     </div>
+</div>
 
-    <script src="app.js"></script>
+<!-- === ФИЛЬТРЫ === -->
+<div class="filters">
+    <div class="filter-btn">⭐ Рейтинг</div>
+    <div class="filter-btn">🎁 Акции</div>
+    <div class="filter-btn">⏱ До 30 мин</div>
+</div>
+
+<!-- === Популярные рестораны === -->
+<section>
+    <h2>Популярные рестораны</h2>
+
+    <div class="restaurants">
+        <div class="rest-card">
+            <div class="rest-logo"></div>
+            <div class="rest-time">15–25 мин</div>
+        </div>
+
+        <div class="rest-card">
+            <div class="rest-logo"></div>
+            <div class="rest-time">20–30 мин</div>
+        </div>
+
+        <div class="rest-card">
+            <div class="rest-logo"></div>
+            <div class="rest-time">25–30 мин</div>
+        </div>
+    </div>
+</section>
+
+<!-- === Специально для вас === -->
+<section>
+    <h2>Специально для вас</h2>
+
+    <div class="big-card">
+        <img src="https://i.imgur.com/EgG6oCn.jpeg">
+        <div class="fav-btn">♡</div>
+        <div class="big-card-info">
+            <div class="big-card-title">SUNSET RESTAURANT ★ 4.7</div>
+            <div class="big-card-time">25–30 мин</div>
+        </div>
+    </div>
+</section>
+
+<!-- === Стоит попробовать === -->
+<section>
+    <h2>Стоит попробовать</h2>
+
+    <div class="big-card">
+        <img src="https://i.imgur.com/zlqR9DO.jpeg">
+        <div class="fav-btn">♡</div>
+        <div class="big-card-info">
+            <div class="big-card-title">Хачапури</div>
+            <div class="big-card-time">20–25 мин</div>
+        </div>
+    </div>
+</section>
+
+<!-- === Нижнее меню === -->
+<div class="bottom-nav">
+    <div class="nav-item active">Главная</div>
+    <div class="nav-item">Избранное</div>
+    <div class="nav-item">Корзина</div>
+    <div class="nav-item">Профиль</div>
+</div>
+
 </body>
 </html>
