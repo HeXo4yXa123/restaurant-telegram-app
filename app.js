@@ -1,724 +1,621 @@
-// ===== КОНФИГУРАЦИЯ =====
-const CONFIG = {
-    SERVER_URL: "https://ВАШ_ЛОГИН.pythonanywhere.com", // ← ЗАМЕНИТЕ НА ВАШ URL!
-    MANAGER_PASSWORD: "admin123",
-    APP_VERSION: "1.0.0"
-};
-
-// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
-let tg = null;
-let userData = null;
-let appMode = 'customer';
-let cart = JSON.parse(localStorage.getItem('cart')) || [];
-let currentStatusFilter = 'all';
-
-// ===== ТЕСТОВЫЕ ТОВАРЫ =====
-const PRODUCTS = [
-    {id: 1, name: "Black Pizza", description: "Черное тесто, сыр, грибы", price: 590, category: "pizza", icon: "fas fa-pizza-slice"},
-    {id: 2, name: "Green Pizza", description: "Авокадо, шпинат, козий сыр", price: 650, category: "pizza", icon: "fas fa-pizza-slice"},
-    {id: 3, name: "Black Burger", description: "Черная булка, говядина", price: 450, category: "burger", icon: "fas fa-hamburger"},
-    {id: 4, name: "Green Burger", description: "Курица, авокадо, салат", price: 420, category: "burger", icon: "fas fa-hamburger"},
-    {id: 5, name: "Matcha Latte", description: "Зеленый чай матча", price: 280, category: "drink", icon: "fas fa-glass-whiskey"},
-    {id: 6, name: "Black Coffee", description: "Эспрессо премиум", price: 220, category: "drink", icon: "fas fa-glass-whiskey"},
-    {id: 7, name: "Black Forest", description: "Шоколадный торт", price: 320, category: "dessert", icon: "fas fa-ice-cream"},
-    {id: 8, name: "Green Tea Cake", description: "Чизкейк с матчей", price: 290, category: "dessert", icon: "fas fa-ice-cream"}
-];
-
-// ===== ЗАГРУЗКА =====
-document.addEventListener('DOMContentLoaded', function() {
-    console.log(`🍽️ Black Green v${CONFIG.APP_VERSION}`);
-    initApp();
-});
-
-function initApp() {
-    initTelegram();
-    setupEventListeners();
-    checkSavedMode();
-    renderProducts();
-    updateCart();
-    checkServer();
-}
-
-function initTelegram() {
-    tg = window.Telegram?.WebApp;
-    
-    if (tg) {
-        tg.ready();
-        tg.expand();
+class RestaurantApp {
+    constructor() {
+        this.products = [];
+        this.cart = [];
+        this.userRole = 'customer';
+        this.currentOrder = null;
+        this.orders = [];
         
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-            userData = {
-                id: user.id,
-                name: user.first_name || user.username || 'Гость'
-            };
-            updateUserInfo(user);
-        }
-    } else {
-        userData = {id: 999999, name: 'Гость'};
-        console.log('⚠️ Режим тестирования (не в Telegram)');
+        this.init();
     }
-}
 
-function updateUserInfo(user) {
-    const welcome = document.getElementById('userWelcome');
-    if (welcome) {
-        welcome.innerHTML = `<i class="fas fa-user-circle"></i><span>Привет, ${user.first_name || 'Гость'}!</span>`;
+    async init() {
+        // Загрузка данных
+        await this.loadProducts();
+        this.loadCart();
+        this.setupEventListeners();
+        
+        // Симуляция загрузки
+        setTimeout(() => {
+            this.showScreen('main-screen');
+            this.hideLoading();
+        }, 1000);
     }
-}
 
-function checkSavedMode() {
-    const saved = localStorage.getItem('appMode');
-    if (saved === 'manager') {
-        showManagerPanel();
-    } else {
-        showCustomerPanel();
+    async loadProducts() {
+        // Здесь будет запрос к бэкенду
+        // Временно используем mock-данные
+        this.products = [
+            { id: 1, name: 'Пицца Маргарита', description: 'Томаты, сыр, базилик', price: 450, category: 'pizza' },
+            { id: 2, name: 'Пицца Пепперони', description: 'Салями, сыр, перец', price: 550, category: 'pizza' },
+            { id: 3, name: 'Чизбургер', description: 'Говядина, сыр, овощи', price: 320, category: 'burger' },
+            { id: 4, name: 'Биг Бургер', description: 'Двойная котлета, бекон', price: 420, category: 'burger' },
+            { id: 5, name: 'Филадельфия', description: 'Лосось, сыр, огурец', price: 680, category: 'sushi' },
+            { id: 6, name: 'Калифорния', description: 'Краб, авокадо, икра', price: 520, category: 'sushi' },
+            { id: 7, name: 'Кола', description: '0.5л', price: 120, category: 'drinks' },
+            { id: 8, name: 'Кофе', description: 'Американо', price: 150, category: 'drinks' }
+        ];
+        
+        this.renderProducts();
     }
-}
 
-// ===== СОБЫТИЯ =====
-function setupEventListeners() {
-    // Кнопки режимов
-    document.getElementById('managerSwitchBtn')?.addEventListener('click', showLoginPanel);
-    document.getElementById('customerSwitchBtn')?.addEventListener('click', switchToCustomer);
-    
-    // Корзина
-    document.getElementById('cartBtn')?.addEventListener('click', toggleCart);
-    document.getElementById('closeCart')?.addEventListener('click', toggleCart);
-    
-    // Заказ
-    document.getElementById('checkoutBtn')?.addEventListener('click', openOrderModal);
-    document.getElementById('closeModal')?.addEventListener('click', closeOrderModal);
-    document.getElementById('cancelOrder')?.addEventListener('click', closeOrderModal);
-    document.getElementById('confirmOrder')?.addEventListener('click', confirmOrder);
-    
-    // Менеджер
-    document.getElementById('refreshOrdersBtn')?.addEventListener('click', loadManagerOrders);
-    
-    // Фильтры
-    document.querySelectorAll('.status-filter').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.status-filter').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentStatusFilter = this.dataset.status;
-            loadManagerOrders();
+    setupEventListeners() {
+        // Кнопки категорий
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.filterProducts(e.target.dataset.category);
+            });
         });
-    });
-    
-    // Категории
-    document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            renderProducts(this.dataset.category);
+
+        // Поиск
+        document.getElementById('search').addEventListener('input', (e) => {
+            this.searchProducts(e.target.value);
         });
-    });
-    
-    // Фон
-    document.getElementById('overlay')?.addEventListener('click', closeAll);
-    
-    // Динамические кнопки
-    document.addEventListener('click', function(e) {
-        // Добавить в корзину
-        if (e.target.closest('.add-to-cart')) {
-            const btn = e.target.closest('.add-to-cart');
-            addToCart(parseInt(btn.dataset.id));
-            btn.classList.add('add-animation');
-            setTimeout(() => btn.classList.remove('add-animation'), 500);
-        }
-        
-        // Удалить из корзины
-        if (e.target.closest('.remove-item')) {
-            const btn = e.target.closest('.remove-item');
-            removeFromCart(parseInt(btn.dataset.id));
-        }
-        
-        // Количество
-        if (e.target.closest('.quantity-btn.decrease')) {
-            const btn = e.target.closest('.quantity-btn');
-            updateQuantity(parseInt(btn.dataset.id), -1);
-        }
-        
-        if (e.target.closest('.quantity-btn.increase')) {
-            const btn = e.target.closest('.quantity-btn');
-            updateQuantity(parseInt(btn.dataset.id), 1);
-        }
-        
-        // Действия менеджера
-        if (e.target.closest('.action-btn.accept')) {
-            const btn = e.target.closest('.action-btn');
-            updateOrderStatus(btn.dataset.orderId, 'accepted');
-        }
-        
-        if (e.target.closest('.action-btn.cooking')) {
-            const btn = e.target.closest('.action-btn');
-            updateOrderStatus(btn.dataset.orderId, 'cooking');
-        }
-        
-        if (e.target.closest('.action-btn.ready')) {
-            const btn = e.target.closest('.action-btn');
-            updateOrderStatus(btn.dataset.orderId, 'ready');
-        }
-        
-        if (e.target.closest('.action-btn.delivering')) {
-            const btn = e.target.closest('.action-btn');
-            updateOrderStatus(btn.dataset.orderId, 'delivering');
-        }
-    });
-}
 
-// ===== РЕЖИМЫ =====
-function showCustomerPanel() {
-    appMode = 'customer';
-    localStorage.setItem('appMode', 'customer');
-    
-    document.getElementById('customerPanel').style.display = 'block';
-    document.getElementById('managerPanel').style.display = 'none';
-    document.getElementById('loginPanel').style.display = 'none';
-    
-    renderProducts();
-    updateCart();
-}
+        // Корзина
+        document.getElementById('cart-btn').addEventListener('click', () => {
+            this.showCart();
+        });
 
-function showLoginPanel() {
-    document.getElementById('customerPanel').style.display = 'none';
-    document.getElementById('managerPanel').style.display = 'none';
-    document.getElementById('loginPanel').style.display = 'block';
-    
-    setTimeout(() => {
-        document.getElementById('managerPassword')?.focus();
-    }, 100);
-}
+        // Оформление заказа
+        document.getElementById('checkout-btn').addEventListener('click', () => {
+            this.showCheckout();
+        });
 
-async function loginAsManager() {
-    const input = document.getElementById('managerPassword');
-    const password = input?.value.trim();
-    
-    if (password === CONFIG.MANAGER_PASSWORD) {
-        showManagerPanel();
-        showNotification('Панель управления', 'success');
-        if (input) input.value = '';
-    } else {
-        showNotification('Неверный пароль', 'error');
-        if (input) {
-            input.value = '';
-            input.focus();
-        }
+        // Форма заказа
+        document.getElementById('checkout-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.submitOrder();
+        });
+
+        // Навигация назад
+        document.getElementById('back-to-catalog').addEventListener('click', () => {
+            this.showCatalog();
+        });
+
+        document.getElementById('back-to-cart').addEventListener('click', () => {
+            this.showCart();
+        });
+
+        // Вход
+        document.getElementById('login-btn').addEventListener('click', () => {
+            this.showLoginModal();
+        });
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleLogin();
+        });
+
+        document.getElementById('cancel-login').addEventListener('click', () => {
+            this.hideLoginModal();
+        });
+
+        // Выход
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            this.logout();
+        });
     }
-}
 
-function showManagerPanel() {
-    appMode = 'manager';
-    localStorage.setItem('appMode', 'manager');
-    
-    document.getElementById('customerPanel').style.display = 'none';
-    document.getElementById('managerPanel').style.display = 'block';
-    document.getElementById('loginPanel').style.display = 'none';
-    
-    loadManagerOrders();
-    loadManagerStats();
-}
-
-// ===== КОРЗИНА =====
-function addToCart(productId) {
-    const product = PRODUCTS.find(p => p.id === productId);
-    if (!product) return;
-    
-    const existing = cart.find(item => item.id === productId);
-    
-    if (existing) {
-        existing.quantity++;
-    } else {
-        cart.push({...product, quantity: 1});
-    }
-    
-    updateCart();
-    showNotification(`${product.name} добавлен`, 'success');
-}
-
-function removeFromCart(productId) {
-    cart = cart.filter(item => item.id !== productId);
-    updateCart();
-}
-
-function updateQuantity(productId, change) {
-    const item = cart.find(item => item.id === productId);
-    if (!item) return;
-    
-    item.quantity += change;
-    
-    if (item.quantity <= 0) {
-        removeFromCart(productId);
-    } else {
-        updateCart();
-    }
-}
-
-function updateCart() {
-    localStorage.setItem('cart', JSON.stringify(cart));
-    
-    // Счетчик
-    const total = cart.reduce((sum, item) => sum + item.quantity, 0);
-    document.getElementById('cartCount').textContent = total;
-    
-    // Товары
-    renderCartItems();
-    
-    // Сумма
-    updateTotal();
-}
-
-function renderCartItems() {
-    const container = document.getElementById('cartItems');
-    const empty = document.getElementById('emptyCart');
-    
-    if (!container) return;
-    
-    if (cart.length === 0) {
-        if (empty) empty.style.display = 'block';
+    renderProducts(filteredProducts = null) {
+        const productsToRender = filteredProducts || this.products;
+        const container = document.getElementById('products-grid');
         container.innerHTML = '';
-        return;
-    }
-    
-    if (empty) empty.style.display = 'none';
-    
-    container.innerHTML = cart.map(item => `
-        <div class="cart-item">
-            <div class="cart-item-image">
-                <i class="${item.icon}"></i>
-            </div>
-            <div class="cart-item-info">
-                <div class="cart-item-title">${item.name}</div>
-                <div class="cart-item-price">${item.price * item.quantity} ₽</div>
-            </div>
-            <div class="cart-item-controls">
-                <button class="quantity-btn decrease" data-id="${item.id}">-</button>
-                <span class="cart-item-quantity">${item.quantity}</span>
-                <button class="quantity-btn increase" data-id="${item.id}">+</button>
-                <button class="remove-item" data-id="${item.id}">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
 
-function updateTotal() {
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    const totalEl = document.getElementById('totalPrice');
-    const finalEl = document.getElementById('finalTotal');
-    
-    if (totalEl) totalEl.textContent = `${total} ₽`;
-    if (finalEl) finalEl.textContent = `${total} ₽`;
-}
-
-function toggleCart() {
-    const panel = document.getElementById('cartPanel');
-    const overlay = document.getElementById('overlay');
-    
-    if (panel) {
-        panel.classList.toggle('active');
-        if (overlay) overlay.classList.toggle('active');
-    }
-}
-
-// ===== ТОВАРЫ =====
-function renderProducts(category = 'all') {
-    const grid = document.getElementById('productsGrid');
-    if (!grid) return;
-    
-    let filtered = PRODUCTS;
-    if (category !== 'all') {
-        filtered = PRODUCTS.filter(p => p.category === category);
-    }
-    
-    grid.innerHTML = filtered.map(product => `
-        <div class="product-card">
-            <div class="product-image">
-                <i class="${product.icon}"></i>
-            </div>
-            <div class="product-content">
+        productsToRender.forEach(product => {
+            const productCard = document.createElement('div');
+            productCard.className = 'product-card';
+            productCard.innerHTML = `
+                <div class="product-img">
+                    <i class="fas fa-${this.getProductIcon(product.category)}"></i>
+                </div>
                 <h3 class="product-title">${product.name}</h3>
                 <p class="product-description">${product.description}</p>
                 <div class="product-footer">
-                    <div class="product-price">${product.price} ₽</div>
+                    <span class="product-price">${product.price} ₽</span>
                     <button class="add-to-cart" data-id="${product.id}">
-                        <i class="fas fa-plus"></i>
+                        <i class="fas fa-plus"></i> В корзину
                     </button>
                 </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// ===== ЗАКАЗ =====
-function openOrderModal() {
-    if (cart.length === 0) {
-        showNotification('Добавьте товары', 'error');
-        return;
-    }
-    
-    const modal = document.getElementById('orderModal');
-    const overlay = document.getElementById('overlay');
-    const summary = document.getElementById('orderSummary');
-    
-    if (!modal || !overlay || !summary) return;
-    
-    // Детали заказа
-    summary.innerHTML = cart.map(item => `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span>${item.name} × ${item.quantity}</span>
-            <span>${item.price * item.quantity} ₽</span>
-        </div>
-    `).join('');
-    
-    modal.classList.add('active');
-    overlay.classList.add('active');
-}
-
-function closeOrderModal() {
-    const modal = document.getElementById('orderModal');
-    const overlay = document.getElementById('overlay');
-    
-    if (modal) modal.classList.remove('active');
-    if (overlay) overlay.classList.remove('active');
-}
-
-async function confirmOrder() {
-    const address = document.getElementById('address');
-    const phone = document.getElementById('phone');
-    
-    if (!address || !phone) return;
-    
-    const addressVal = address.value.trim();
-    const phoneVal = phone.value.trim();
-    const comment = document.getElementById('comment')?.value.trim() || '';
-    
-    if (!addressVal) {
-        showNotification('Введите адрес', 'error');
-        return;
-    }
-    
-    if (!phoneVal) {
-        showNotification('Введите телефон', 'error');
-        return;
-    }
-    
-    if (!userData) {
-        userData = {id: 999999, name: 'Гость'};
-    }
-    
-    // Данные заказа
-    const orderData = {
-        user_id: userData.id,
-        user_name: userData.name,
-        phone: phoneVal,
-        address: addressVal,
-        comment: comment,
-        items: cart.map(item => ({
-            id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price
-        })),
-        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    };
-    
-    try {
-        showNotification('Отправляю заказ...', 'info');
-        
-        const response = await fetch(CONFIG.SERVER_URL + '/create_order', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(orderData)
+            `;
+            
+            productCard.querySelector('.add-to-cart').addEventListener('click', () => {
+                this.addToCart(product);
+            });
+            
+            container.appendChild(productCard);
         });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Очистка
-            cart = [];
-            updateCart();
-            localStorage.removeItem('cart');
-            
-            // Закрыть
-            closeOrderModal();
-            
-            // Успех
-            showNotification(`Заказ ${result.order_id} принят!`, 'success');
-            
-            // Выход
-            setTimeout(() => {
-                if (tg && tg.close) {
-                    tg.close();
-                }
-            }, 3000);
-        } else {
-            throw new Error(result.error || 'Ошибка');
-        }
-    } catch (error) {
-        showNotification('Ошибка создания заказа', 'error');
-        console.error('Ошибка:', error);
     }
-}
 
-// ===== МЕНЕДЖЕР =====
-async function loadManagerOrders() {
-    try {
-        showNotification('Загружаю...', 'info');
-        
-        const response = await fetch(CONFIG.SERVER_URL + '/get_orders');
-        const result = await response.json();
-        
-        if (result.success) {
-            renderManagerOrders(result.orders);
-        } else {
-            throw new Error('Ошибка сервера');
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки:', error);
-        renderTestOrders();
+    getProductIcon(category) {
+        const icons = {
+            pizza: 'pizza-slice',
+            burger: 'hamburger',
+            sushi: 'fish',
+            drinks: 'wine-bottle'
+        };
+        return icons[category] || 'utensils';
     }
-}
 
-function renderManagerOrders(orders) {
-    const container = document.getElementById('ordersList');
-    const empty = document.getElementById('emptyOrders');
-    
-    if (!container) return;
-    
-    if (!orders || orders.length === 0) {
-        if (empty) empty.style.display = 'block';
+    addToCart(product) {
+        const existingItem = this.cart.find(item => item.id === product.id);
+        
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            this.cart.push({
+                ...product,
+                quantity: 1
+            });
+        }
+        
+        this.saveCart();
+        this.updateCartCount();
+        this.showNotification(`${product.name} добавлен в корзину`);
+    }
+
+    removeFromCart(productId) {
+        this.cart = this.cart.filter(item => item.id !== productId);
+        this.saveCart();
+        this.updateCartCount();
+        this.renderCart();
+    }
+
+    updateQuantity(productId, change) {
+        const item = this.cart.find(item => item.id === productId);
+        if (item) {
+            item.quantity += change;
+            if (item.quantity <= 0) {
+                this.removeFromCart(productId);
+            } else {
+                this.saveCart();
+                this.updateCartCount();
+                this.renderCart();
+            }
+        }
+    }
+
+    renderCart() {
+        const container = document.getElementById('cart-items');
+        const totalElement = document.getElementById('cart-total');
+        
+        if (this.cart.length === 0) {
+            container.innerHTML = '<p class="empty-cart">Корзина пуста</p>';
+            totalElement.textContent = '0 ₽';
+            return;
+        }
+        
+        let total = 0;
         container.innerHTML = '';
-        return;
-    }
-    
-    if (empty) empty.style.display = 'none';
-    
-    // Фильтрация
-    let filtered = orders;
-    if (currentStatusFilter !== 'all') {
-        filtered = orders.filter(o => o.status === currentStatusFilter);
-    }
-    
-    // Сортировка
-    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    container.innerHTML = filtered.map(order => {
-        const statusInfo = getStatusInfo(order.status);
         
-        return `
-            <div class="order-card">
-                <div class="order-header">
-                    <div class="order-id">${order.id}</div>
-                    <div class="order-time">${formatTime(order.date)}</div>
+        this.cart.forEach(item => {
+            const itemTotal = item.price * item.quantity;
+            total += itemTotal;
+            
+            const cartItem = document.createElement('div');
+            cartItem.className = 'cart-item';
+            cartItem.innerHTML = `
+                <div class="cart-item-info">
+                    <h4>${item.name}</h4>
+                    <p class="price">${item.price} ₽ × ${item.quantity} = ${itemTotal} ₽</p>
                 </div>
-                
-                <div class="order-customer">
-                    <i class="fas fa-user"></i>
-                    <span>${order.customer}</span>
-                    <a href="tel:${order.phone}" class="order-phone">
-                        <i class="fas fa-phone"></i> ${order.phone}
-                    </a>
+                <div class="cart-item-controls">
+                    <button class="quantity-btn minus" data-id="${item.id}">-</button>
+                    <span>${item.quantity}</span>
+                    <button class="quantity-btn plus" data-id="${item.id}">+</button>
+                    <button class="remove-btn" data-id="${item.id}">Удалить</button>
                 </div>
-                
-                <div class="order-address">
-                    <i class="fas fa-map-marker-alt"></i>
-                    ${order.address}
-                </div>
-                
-                <div class="order-items">
-                    ${order.items}
-                </div>
-                
-                <div class="order-footer">
-                    <div class="order-total">${order.total} ₽</div>
-                    <div class="order-status ${order.status}">${statusInfo.text}</div>
-                </div>
-                
-                <div class="order-actions">
-                    ${getOrderActions(order.id, order.status)}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function getOrderActions(orderId, status) {
-    let actions = '';
-    
-    if (status === 'new') {
-        actions += `
-            <button class="action-btn accept" data-order-id="${orderId}">
-                <i class="fas fa-check"></i> Принять
-            </button>
-            <button class="action-btn reject" data-order-id="${orderId}">
-                <i class="fas fa-times"></i> Отклонить
-            </button>
-        `;
-    } else if (status === 'accepted') {
-        actions += `
-            <button class="action-btn cooking" data-order-id="${orderId}">
-                <i class="fas fa-utensils"></i> Готовить
-            </button>
-        `;
-    } else if (status === 'cooking') {
-        actions += `
-            <button class="action-btn ready" data-order-id="${orderId}">
-                <i class="fas fa-check-circle"></i> Готово
-            </button>
-        `;
-    } else if (status === 'ready') {
-        actions += `
-            <button class="action-btn delivering" data-order-id="${orderId}">
-                <i class="fas fa-motorcycle"></i> В доставку
-            </button>
-        `;
-    }
-    
-    return actions;
-}
-
-async function updateOrderStatus(orderId, newStatus) {
-    try {
-        showNotification('Обновляю...', 'info');
-        
-        const response = await fetch(CONFIG.SERVER_URL + '/update_order', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                order_id: orderId,
-                status: newStatus
-            })
+            `;
+            
+            cartItem.querySelector('.minus').addEventListener('click', () => {
+                this.updateQuantity(item.id, -1);
+            });
+            
+            cartItem.querySelector('.plus').addEventListener('click', () => {
+                this.updateQuantity(item.id, 1);
+            });
+            
+            cartItem.querySelector('.remove-btn').addEventListener('click', () => {
+                this.removeFromCart(item.id);
+            });
+            
+            container.appendChild(cartItem);
         });
         
-        const result = await response.json();
+        totalElement.textContent = `${total} ₽`;
+    }
+
+    showCart() {
+        this.hideAllSections();
+        document.getElementById('cart-section').classList.remove('hidden');
+        this.renderCart();
+    }
+
+    showCatalog() {
+        this.hideAllSections();
+        document.getElementById('catalog').classList.remove('hidden');
+    }
+
+    showCheckout() {
+        if (this.cart.length === 0) {
+            this.showNotification('Добавьте товары в корзину');
+            return;
+        }
         
-        if (result.success) {
-            showNotification('Статус обновлен', 'success');
-            loadManagerOrders();
+        this.hideAllSections();
+        document.getElementById('checkout-section').classList.remove('hidden');
+        this.renderOrderReview();
+    }
+
+    renderOrderReview() {
+        const container = document.getElementById('order-review');
+        const totalElement = document.getElementById('order-total');
+        
+        let total = 0;
+        container.innerHTML = '';
+        
+        this.cart.forEach(item => {
+            const itemTotal = item.price * item.quantity;
+            total += itemTotal;
+            
+            const itemElement = document.createElement('div');
+            itemElement.className = 'order-review-item';
+            itemElement.innerHTML = `
+                <span>${item.name} × ${item.quantity}</span>
+                <span>${itemTotal} ₽</span>
+            `;
+            container.appendChild(itemElement);
+        });
+        
+        totalElement.textContent = `${total} ₽`;
+    }
+
+    async submitOrder() {
+        const order = {
+            id: Date.now(),
+            customer: {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                comment: document.getElementById('comment').value
+            },
+            items: this.cart,
+            total: this.getCartTotal(),
+            status: 'new',
+            createdAt: new Date().toISOString()
+        };
+        
+        try {
+            // Отправка в Google Sheets через бэкенд
+            const response = await fetch('https://your-pythonanywhere-app.pythonanywhere.com/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(order)
+            });
+            
+            if (response.ok) {
+                this.showNotification('Заказ успешно оформлен!');
+                this.cart = [];
+                this.saveCart();
+                this.updateCartCount();
+                this.showCatalog();
+                
+                // Очистка формы
+                document.getElementById('checkout-form').reset();
+            } else {
+                throw new Error('Ошибка при сохранении заказа');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            this.showNotification('Ошибка при оформлении заказа', 'error');
+        }
+    }
+
+    async handleLogin() {
+        const role = document.getElementById('role').value;
+        const password = document.getElementById('password').value;
+        
+        // Простая проверка пароля (в реальном приложении нужно использовать безопасную аутентификацию)
+        const passwords = {
+            manager: 'manager123',
+            courier: 'courier123',
+            customer: ''
+        };
+        
+        if (role === 'customer' || password === passwords[role]) {
+            this.userRole = role;
+            this.hideLoginModal();
+            this.updateUIForRole();
+            
+            if (role !== 'customer') {
+                await this.loadOrders();
+                this.showAdminPanel();
+            } else {
+                this.showCatalog();
+            }
+            
+            this.showNotification(`Вы вошли как ${this.getRoleName(role)}`);
         } else {
-            throw new Error(result.error);
+            this.showNotification('Неверный пароль', 'error');
         }
-    } catch (error) {
-        showNotification('Ошибка обновления', 'error');
-        console.error('Ошибка:', error);
     }
-}
 
-function loadManagerStats() {
-    // Заглушка статистики
-    document.getElementById('statNew').textContent = '3';
-    document.getElementById('statToday').textContent = '12';
-    document.getElementById('statTotal').textContent = '47';
-    document.getElementById('statRevenue').textContent = '28460 ₽';
-}
-
-// ===== ВСПОМОГАТЕЛЬНЫЕ =====
-function showNotification(message, type = 'info') {
-    const el = document.getElementById('notification');
-    const text = document.getElementById('notificationText');
-    
-    if (!el || !text) {
-        console.log(message);
-        return;
-    }
-    
-    text.textContent = message;
-    el.className = `notification ${type}`;
-    el.classList.add('show');
-    
-    setTimeout(() => {
-        el.classList.remove('show');
-    }, 3000);
-}
-
-function closeAll() {
-    document.querySelectorAll('.modal.active').forEach(el => {
-        el.classList.remove('active');
-    });
-    
-    document.querySelectorAll('.cart-panel.active').forEach(el => {
-        el.classList.remove('active');
-    });
-    
-    const overlay = document.getElementById('overlay');
-    if (overlay) overlay.classList.remove('active');
-}
-
-function formatTime(dateStr) {
-    try {
-        const date = new Date(dateStr);
-        return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    } catch {
-        return dateStr;
-    }
-}
-
-function getStatusInfo(status) {
-    const map = {
-        'new': {text: 'Новый', color: '#FF6B6B'},
-        'accepted': {text: 'Принят', color: '#4ECDC4'},
-        'cooking': {text: 'Готовится', color: '#FFD166'},
-        'ready': {text: 'Готов', color: '#06D6A0'},
-        'delivering': {text: 'В пути', color: '#118AB2'},
-        'delivered': {text: 'Доставлен', color: '#6C757D'}
-    };
-    return map[status] || map['new'];
-}
-
-async function checkServer() {
-    try {
-        await fetch(CONFIG.SERVER_URL + '/health');
-        console.log('✅ Сервер доступен');
-    } catch {
-        console.log('⚠️ Сервер не отвечает');
-    }
-}
-
-// ===== ТЕСТОВЫЕ ДАННЫЕ =====
-function renderTestOrders() {
-    const container = document.getElementById('ordersList');
-    if (!container) return;
-    
-    const testOrders = [
-        {
-            id: '#1001',
-            date: new Date().toISOString(),
-            customer: 'Иван Иванов',
-            phone: '+79991234567',
-            address: 'ул. Ленина, 15',
-            items: 'Black Pizza ×1, Matcha Latte ×2',
-            total: '1150',
-            status: 'new'
-        },
-        {
-            id: '#1002',
-            date: new Date(Date.now() - 3600000).toISOString(),
-            customer: 'Мария Петрова',
-            phone: '+79987654321',
-            address: 'ул. Мира, 42',
-            items: 'Green Burger ×1, Black Coffee ×1',
-            total: '640',
-            status: 'accepted'
+    async loadOrders() {
+        try {
+            const response = await fetch('https://your-pythonanywhere-app.pythonanywhere.com/api/orders');
+            if (response.ok) {
+                this.orders = await response.json();
+                this.renderAdminPanel();
+            }
+        } catch (error) {
+            console.error('Error loading orders:', error);
+            // Используем тестовые данные
+            this.orders = [
+                {
+                    id: 1001,
+                    customer: { name: 'Иван Иванов', phone: '+79991234567', address: 'ул. Ленина, 1' },
+                    items: [{ name: 'Пицца Маргарита', quantity: 1, price: 450 }],
+                    total: 450,
+                    status: 'new',
+                    createdAt: '2024-01-15T10:30:00Z'
+                },
+                {
+                    id: 1002,
+                    customer: { name: 'Мария Петрова', phone: '+79997654321', address: 'ул. Мира, 15' },
+                    items: [{ name: 'Чизбургер', quantity: 2, price: 320 }, { name: 'Кола', quantity: 1, price: 120 }],
+                    total: 760,
+                    status: 'preparing',
+                    createdAt: '2024-01-15T11:15:00Z'
+                }
+            ];
+            this.renderAdminPanel();
         }
-    ];
-    
-    renderManagerOrders(testOrders);
-}
-
-// Автообновление заказов
-if (appMode === 'manager') {
-    setInterval(() => {
-        loadManagerOrders();
-        loadManagerStats();
-    }, 30000);
-}
-
-// Автосохранение корзины
-setInterval(() => {
-    if (cart.length > 0) {
-        localStorage.setItem('cart', JSON.stringify(cart));
     }
-}, 60000);
+
+    renderAdminPanel() {
+        const container = document.getElementById('admin-panel');
+        const title = document.getElementById('admin-title');
+        
+        if (this.userRole === 'manager') {
+            title.textContent = 'Панель менеджера - Все заказы';
+            this.renderManagerPanel(container);
+        } else if (this.userRole === 'courier') {
+            title.textContent = 'Панель курьера - Мои заказы';
+            this.renderCourierPanel(container);
+        }
+    }
+
+    renderManagerPanel(container) {
+        container.innerHTML = `
+            <div class="orders-list">
+                ${this.orders.map(order => `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span class="order-id">Заказ #${order.id}</span>
+                            <span class="order-status status-${order.status}">${this.getStatusText(order.status)}</span>
+                        </div>
+                        <div class="order-details">
+                            <p><strong>Клиент:</strong> ${order.customer.name}</p>
+                            <p><strong>Телефон:</strong> ${order.customer.phone}</p>
+                            <p><strong>Адрес:</strong> ${order.customer.address}</p>
+                            <p><strong>Комментарий:</strong> ${order.customer.comment || 'нет'}</p>
+                            <ul class="order-items">
+                                ${order.items.map(item => `
+                                    <li>
+                                        <span>${item.name} × ${item.quantity}</span>
+                                        <span>${item.price * item.quantity} ₽</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                            <p class="total-row"><strong>Итого:</strong> ${order.total} ₽</p>
+                        </div>
+                        <div class="order-actions">
+                            ${order.status === 'new' ? `
+                                <button class="btn primary" onclick="app.updateOrderStatus(${order.id}, 'preparing')">
+                                    В приготовление
+                                </button>
+                            ` : ''}
+                            ${order.status === 'preparing' ? `
+                                <button class="btn primary" onclick="app.updateOrderStatus(${order.id}, 'ready')">
+                                    Готов к выдаче
+                                </button>
+                            ` : ''}
+                            ${order.status === 'ready' ? `
+                                <button class="btn secondary" onclick="app.assignCourier(${order.id})">
+                                    Назначить курьера
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    renderCourierPanel(container) {
+        const courierOrders = this.orders.filter(order => 
+            order.status === 'ready' || order.status === 'delivering'
+        );
+        
+        container.innerHTML = `
+            <div class="orders-list">
+                ${courierOrders.map(order => `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span class="order-id">Заказ #${order.id}</span>
+                            <span class="order-status status-${order.status}">${this.getStatusText(order.status)}</span>
+                        </div>
+                        <div class="order-details">
+                            <p><strong>Клиент:</strong> ${order.customer.name}</p>
+                            <p><strong>Телефон:</strong> ${order.customer.phone}</p>
+                            <p><strong>Адрес:</strong> ${order.customer.address}</p>
+                            <ul class="order-items">
+                                ${order.items.map(item => `
+                                    <li>${item.name} × ${item.quantity}</li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                        <div class="order-actions">
+                            <button class="btn primary" onclick="app.updateOrderStatus(${order.id}, 'delivering')">
+                                Начать доставку
+                            </button>
+                            <button class="btn secondary" onclick="app.updateOrderStatus(${order.id}, 'delivered')">
+                                Завершить доставку
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    async updateOrderStatus(orderId, status) {
+        try {
+            const response = await fetch(`https://your-pythonanywhere-app.pythonanywhere.com/api/orders/${orderId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status })
+            });
+            
+            if (response.ok) {
+                const order = this.orders.find(o => o.id === orderId);
+                if (order) {
+                    order.status = status;
+                }
+                this.renderAdminPanel();
+                this.showNotification('Статус обновлен');
+            }
+        } catch (error) {
+            console.error('Error updating order:', error);
+            this.showNotification('Ошибка при обновлении статуса', 'error');
+        }
+    }
+
+    getStatusText(status) {
+        const statuses = {
+            new: 'Новый',
+            preparing: 'Готовится',
+            ready: 'Готов',
+            delivering: 'Доставляется',
+            delivered: 'Доставлен'
+        };
+        return statuses[status] || status;
+    }
+
+    getRoleName(role) {
+        const roles = {
+            customer: 'Клиент',
+            manager: 'Менеджер',
+            courier: 'Курьер'
+        };
+        return roles[role] || role;
+    }
+
+    updateUIForRole() {
+        const loginBtn = document.getElementById('login-btn');
+        if (this.userRole === 'customer') {
+            loginBtn.textContent = 'Вход';
+        } else {
+            loginBtn.textContent = this.getRoleName(this.userRole);
+        }
+    }
+
+    showAdminPanel() {
+        this.hideAllSections();
+        document.getElementById('admin-section').classList.remove('hidden');
+    }
+
+    logout() {
+        this.userRole = 'customer';
+        this.updateUIForRole();
+        this.showCatalog();
+        this.showNotification('Вы вышли из системы');
+    }
+
+    filterProducts(category) {
+        if (category === 'all') {
+            this.renderProducts();
+        } else {
+            const filtered = this.products.filter(p => p.category === category);
+            this.renderProducts(filtered);
+        }
+    }
+
+    searchProducts(query) {
+        const filtered = this.products.filter(p => 
+            p.name.toLowerCase().includes(query.toLowerCase()) ||
+            p.description.toLowerCase().includes(query.toLowerCase())
+        );
+        this.renderProducts(filtered);
+    }
+
+    getCartTotal() {
+        return this.cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    }
+
+    updateCartCount() {
+        const count = this.cart.reduce((total, item) => total + item.quantity, 0);
+        document.getElementById('cart-count').textContent = count;
+    }
+
+    saveCart() {
+        localStorage.setItem('cart', JSON.stringify(this.cart));
+    }
+
+    loadCart() {
+        const savedCart = localStorage.getItem('cart');
+        if (savedCart) {
+            this.cart = JSON.parse(savedCart);
+            this.updateCartCount();
+        }
+    }
+
+    showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.add('hidden');
+        });
+        document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    hideAllSections() {
+        document.querySelectorAll('#catalog, #cart-section, #checkout-section, #admin-section').forEach(section => {
+            section.classList.add('hidden');
+        });
+    }
+
+    showLoginModal() {
+        document.getElementById('login-modal').classList.remove('hidden');
+    }
+
+    hideLoginModal() {
+        document.getElementById('login-modal').classList.add('hidden');
+        document.getElementById('login-form').reset();
+    }
+
+    hideLoading() {
+        document.getElementById('loading').classList.add('hidden');
+    }
+
+    showNotification(message, type = 'success') {
+        const notification = document.getElementById('notification');
+        const text = document.getElementById('notification-text');
+        
+        text.textContent = message;
+        notification.style.background = type === 'error' ? '#e74c3c' : '#2ecc71';
+        notification.classList.remove('hidden');
+        
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 3000);
+    }
+}
+
+// Инициализация приложения
+const app = new RestaurantApp();
+window.app = app; // Делаем доступным глобально для обработчиков в HTML
