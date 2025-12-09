@@ -2,167 +2,202 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Delivery</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🍽️ Ресторан | Заказ еды</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <!-- Экран загрузки -->
-    <div id="loading" class="screen">
-        <div class="loader"></div>
-        <p>Загрузка...</p>
-    </div>
-
-    <!-- Главный экран -->
-    <div id="main-screen" class="screen hidden">
-        <header>
-            <div class="logo">
-                <i class="fas fa-utensils"></i>
-                <h1>FoodDelivery</h1>
-            </div>
-            <div class="user-actions">
-                <button id="cart-btn" class="icon-btn">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span id="cart-count">0</span>
+    <!-- Главный контейнер -->
+    <div class="app-container">
+        
+        <!-- Шапка приложения -->
+        <header class="app-header">
+            <div class="header-top">
+                <button class="menu-btn" id="menuBtn">
+                    <i class="fas fa-bars"></i>
                 </button>
-                <button id="login-btn" class="btn secondary">Вход</button>
+                <div class="logo">
+                    <i class="fas fa-utensils"></i>
+                    <span>FoodExpress</span>
+                </div>
+                <button class="cart-btn" id="cartBtn">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="cartCount">0</span>
+                </button>
+            </div>
+            
+            <div class="user-welcome" id="userWelcome">
+                <i class="fas fa-user-circle"></i>
+                <span>Добро пожаловать!</span>
             </div>
         </header>
 
-        <main>
-            <!-- Каталог товаров -->
-            <section id="catalog" class="section">
-                <h2><i class="fas fa-list"></i> Меню</h2>
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="search" placeholder="Поиск блюд...">
-                </div>
-                <div class="category-tabs">
-                    <button class="category-btn active" data-category="all">Все</button>
-                    <button class="category-btn" data-category="pizza">Пицца</button>
-                    <button class="category-btn" data-category="burger">Бургеры</button>
-                    <button class="category-btn" data-category="sushi">Суши</button>
-                    <button class="category-btn" data-category="drinks">Напитки</button>
-                </div>
-                <div id="products-grid" class="products-grid">
-                    <!-- Продукты загружаются через JS -->
-                </div>
-            </section>
+        <!-- Баннер -->
+        <div class="banner">
+            <div class="banner-content">
+                <h2>Быстрая доставка</h2>
+                <p>Закажите любимую еду за 30 минут</p>
+            </div>
+            <div class="banner-icon">
+                <i class="fas fa-motorcycle"></i>
+            </div>
+        </div>
 
-            <!-- Корзина (скрыта по умолчанию) -->
-            <section id="cart-section" class="section hidden">
-                <div class="cart-header">
-                    <button id="back-to-catalog" class="back-btn">
-                        <i class="fas fa-arrow-left"></i> Назад
-                    </button>
-                    <h2><i class="fas fa-shopping-cart"></i> Корзина</h2>
-                </div>
-                <div id="cart-items" class="cart-items">
-                    <!-- Товары в корзине -->
-                </div>
-                <div class="cart-summary">
-                    <div class="summary-row">
-                        <span>Итого:</span>
-                        <span id="cart-total">0 ₽</span>
-                    </div>
-                    <button id="checkout-btn" class="btn primary">Оформить заказ</button>
-                </div>
-            </section>
+        <!-- Навигационные вкладки -->
+        <nav class="categories">
+            <button class="category-btn active" data-category="all">
+                <i class="fas fa-th-large"></i>
+                <span>Все</span>
+            </button>
+            <button class="category-btn" data-category="pizza">
+                <i class="fas fa-pizza-slice"></i>
+                <span>Пицца</span>
+            </button>
+            <button class="category-btn" data-category="burger">
+                <i class="fas fa-hamburger"></i>
+                <span>Бургеры</span>
+            </button>
+            <button class="category-btn" data-category="drink">
+                <i class="fas fa-wine-glass-alt"></i>
+                <span>Напитки</span>
+            </button>
+            <button class="category-btn" data-category="dessert">
+                <i class="fas fa-ice-cream"></i>
+                <span>Десерты</span>
+            </button>
+        </nav>
 
-            <!-- Оформление заказа -->
-            <section id="checkout-section" class="section hidden">
-                <div class="checkout-header">
-                    <button id="back-to-cart" class="back-btn">
-                        <i class="fas fa-arrow-left"></i> Назад
-                    </button>
-                    <h2><i class="fas fa-receipt"></i> Оформление заказа</h2>
+        <!-- Список блюд -->
+        <main class="products-grid" id="productsGrid">
+            <!-- Продукты будут загружены через JavaScript -->
+        </main>
+
+        <!-- Боковое меню (скрытое) -->
+        <div class="side-menu" id="sideMenu">
+            <div class="menu-header">
+                <h3><i class="fas fa-user"></i> Профиль</h3>
+                <button class="close-menu" id="closeMenu">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="user-details" id="userDetails">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
                 </div>
-                <form id="checkout-form">
+                <div class="user-info">
+                    <h4 id="userName">Гость</h4>
+                    <p id="userEmail">Войдите через Telegram</p>
+                </div>
+            </div>
+            <nav class="menu-nav">
+                <a href="#" class="menu-item">
+                    <i class="fas fa-history"></i>
+                    <span>История заказов</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-star"></i>
+                    <span>Избранное</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Адреса доставки</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Настройки</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Помощь</span>
+                </a>
+            </nav>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Выйти</span>
+            </button>
+        </div>
+
+        <!-- Корзина (скрытая) -->
+        <div class="cart-panel" id="cartPanel">
+            <div class="cart-header">
+                <h3><i class="fas fa-shopping-cart"></i> Корзина</h3>
+                <button class="close-cart" id="closeCart">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="cart-items" id="cartItems">
+                <!-- Товары в корзине будут добавляться здесь -->
+                <div class="empty-cart" id="emptyCart">
+                    <i class="fas fa-shopping-basket"></i>
+                    <p>Ваша корзина пуста</p>
+                </div>
+            </div>
+            
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Итого:</span>
+                    <span class="total-price" id="totalPrice">0 ₽</span>
+                </div>
+                <button class="checkout-btn" id="checkoutBtn">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Оформить заказ</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Затемнение фона -->
+        <div class="overlay" id="overlay"></div>
+
+        <!-- Модальное окно оформления заказа -->
+        <div class="modal" id="orderModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-clipboard-check"></i> Оформление заказа</h3>
+                    <button class="close-modal" id="closeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
                     <div class="form-group">
-                        <label for="name"><i class="fas fa-user"></i> Имя *</label>
-                        <input type="text" id="name" required>
+                        <label for="address"><i class="fas fa-map-marker-alt"></i> Адрес доставки</label>
+                        <input type="text" id="address" placeholder="Введите адрес доставки" value="ул. Примерная, д. 1">
                     </div>
                     <div class="form-group">
-                        <label for="phone"><i class="fas fa-phone"></i> Телефон *</label>
-                        <input type="tel" id="phone" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="address"><i class="fas fa-home"></i> Адрес доставки *</label>
-                        <textarea id="address" rows="3" required></textarea>
+                        <label for="phone"><i class="fas fa-phone"></i> Телефон</label>
+                        <input type="tel" id="phone" placeholder="+7 (XXX) XXX-XX-XX">
                     </div>
                     <div class="form-group">
                         <label for="comment"><i class="fas fa-comment"></i> Комментарий к заказу</label>
-                        <textarea id="comment" rows="2"></textarea>
+                        <textarea id="comment" placeholder="Дополнительные пожелания..." rows="3"></textarea>
                     </div>
                     <div class="order-summary">
-                        <h3><i class="fas fa-clipboard-list"></i> Ваш заказ</h3>
-                        <div id="order-review"></div>
-                        <div class="total-row">
+                        <h4>Состав заказа:</h4>
+                        <div id="orderSummary">
+                            <!-- Сумма заказа -->
+                        </div>
+                        <div class="final-total">
                             <strong>К оплате:</strong>
-                            <strong id="order-total">0 ₽</strong>
+                            <strong id="finalTotal">0 ₽</strong>
                         </div>
                     </div>
-                    <button type="submit" class="btn primary">
-                        <i class="fas fa-paper-plane"></i> Подтвердить заказ
+                </div>
+                <div class="modal-footer">
+                    <button class="cancel-btn" id="cancelOrder">Отмена</button>
+                    <button class="confirm-btn" id="confirmOrder">
+                        <i class="fas fa-check"></i>
+                        Подтвердить заказ
                     </button>
-                </form>
-            </section>
-
-            <!-- Панель менеджера/курьера -->
-            <section id="admin-section" class="section hidden">
-                <div class="admin-header">
-                    <button id="logout-btn" class="btn secondary">
-                        <i class="fas fa-sign-out-alt"></i> Выйти
-                    </button>
-                    <h2 id="admin-title"></h2>
                 </div>
-                <div id="admin-panel">
-                    <!-- Контент зависит от роли -->
-                </div>
-            </section>
-        </main>
-
-        <!-- Уведомления -->
-        <div id="notification" class="notification hidden">
-            <span id="notification-text"></span>
-        </div>
-    </div>
-
-    <!-- Модальное окно входа -->
-    <div id="login-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2><i class="fas fa-lock"></i> Вход в систему</h2>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="role">Роль:</label>
-                    <select id="role">
-                        <option value="customer">Клиент</option>
-                        <option value="manager">Менеджер</option>
-                        <option value="courier">Курьер</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="password">Пароль:</label>
-                    <input type="password" id="password" placeholder="Введите пароль">
-                </div>
-                <div class="modal-buttons">
-                    <button type="button" id="cancel-login" class="btn secondary">Отмена</button>
-                    <button type="submit" class="btn primary">Войти</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Модальное окно подтверждения -->
-    <div id="confirm-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2 id="confirm-title"></h2>
-            <p id="confirm-message"></p>
-            <div class="modal-buttons">
-                <button id="confirm-cancel" class="btn secondary">Отмена</button>
-                <button id="confirm-ok" class="btn primary">ОК</button>
             </div>
+        </div>
+
+        <!-- Уведомление -->
+        <div class="notification" id="notification">
+            <span id="notificationText"></span>
         </div>
     </div>
 
