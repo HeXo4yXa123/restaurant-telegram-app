@@ -1,50 +1,12 @@
-// Telegram Web App интеграция
-const tg = window.Telegram.WebApp;
+// Telegram Web App SDK
+let tg = null;
+let userData = null;
 
 // Конфигурация сервера
 // ⚠️ ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL С PYTHONANYWHERE!
 const SERVER_URL = "https://HeX04yXa.pythonanywhere.com";
 
-// Инициализация приложения
-document.addEventListener('DOMContentLoaded', function() {
-    // Расширяем приложение на весь экран
-    tg.expand();
-    
-    // Инициализация завершена
-    tg.ready();
-    
-    // Получаем данные пользователя из Telegram
-    const user = tg.initDataUnsafe?.user;
-    if (user) {
-        updateUserInfo(user);
-    }
-    
-    // Инициализируем приложение
-    initApp();
-});
-
-// Обновление информации о пользователе
-function updateUserInfo(user) {
-    const userName = user.first_name || user.username || 'Пользователь';
-    const userEmail = user.username ? `@${user.username}` : 'Telegram';
-    
-    document.getElementById('userWelcome').innerHTML = `
-        <i class="fas fa-user-circle"></i>
-        <span>Привет, ${userName}!</span>
-    `;
-    
-    document.getElementById('userName').textContent = userName;
-    document.getElementById('userEmail').textContent = userEmail;
-    
-    // Сохраняем user данные для заказов
-    window.userData = {
-        id: user.id,
-        name: userName,
-        username: user.username || ''
-    };
-}
-
-// База данных продуктов (можно загружать с сервера)
+// База данных продуктов
 const products = [
     {
         id: 1,
@@ -109,22 +71,6 @@ const products = [
         price: 250,
         category: "dessert",
         icon: "fas fa-ice-cream"
-    },
-    {
-        id: 9,
-        name: "Карбонара",
-        description: "Спагетти, бекон, сыр, яйцо",
-        price: 380,
-        category: "pasta",
-        icon: "fas fa-utensils"
-    },
-    {
-        id: 10,
-        name: "Цезарь с курицей",
-        description: "Салат с курицей, сыром и соусом Цезарь",
-        price: 320,
-        category: "salad",
-        icon: "fas fa-leaf"
     }
 ];
 
@@ -133,15 +79,118 @@ let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
 // Инициализация приложения
 function initApp() {
+    // Инициализируем Telegram Web App
+    initTelegramWebApp();
+    
+    // Рендерим продукты
     renderProducts();
+    
+    // Настраиваем обработчики
     setupEventListeners();
+    
+    // Обновляем корзину
     updateCartCount();
-    loadMenuFromServer();
+    
+    // Проверяем сервер
+    checkServerConnection();
+}
+
+// Инициализация Telegram Web App
+function initTelegramWebApp() {
+    tg = window.Telegram?.WebApp;
+    
+    if (!tg) {
+        console.warn('Telegram Web App SDK не загружен');
+        showNotification('Откройте приложение через Telegram бота');
+        return;
+    }
+    
+    // Инициализируем
+    tg.ready();
+    tg.expand();
+    
+    // Получаем данные пользователя
+    const initData = tg.initDataUnsafe || {};
+    userData = initData.user;
+    
+    if (userData) {
+        updateUserInfo(userData);
+        console.log('Пользователь найден:', userData);
+    } else {
+        console.warn('Данные пользователя не получены');
+        // Показываем тестового пользователя для отладки
+        userData = {
+            id: 999999,
+            first_name: 'Тестовый',
+            username: 'test_user'
+        };
+        updateUserInfo(userData);
+        showNotification('Режим тестирования. Войдите через Telegram для полного доступа.');
+    }
+}
+
+// Обновление информации о пользователе
+function updateUserInfo(user) {
+    const userName = user.first_name || user.username || 'Пользователь';
+    const userEmail = user.username ? `@${user.username}` : 'Telegram';
+    
+    const userWelcome = document.getElementById('userWelcome');
+    const userNameElement = document.getElementById('userName');
+    const userEmailElement = document.getElementById('userEmail');
+    
+    if (userWelcome) {
+        userWelcome.innerHTML = `
+            <i class="fas fa-user-circle"></i>
+            <span>Привет, ${userName}!</span>
+        `;
+    }
+    
+    if (userNameElement) userNameElement.textContent = userName;
+    if (userEmailElement) userEmailElement.textContent = userEmail;
+    
+    // Сохраняем user данные для заказов
+    window.userData = {
+        id: user.id || 999999,
+        name: userName,
+        username: user.username || ''
+    };
+}
+
+// Функция отправки заказа на сервер
+async function sendOrderToServer(orderData) {
+    try {
+        showNotification("📤 Отправляем заказ...");
+        
+        console.log('Отправляю данные:', orderData);
+        
+        const response = await fetch(`${SERVER_URL}/create_order`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ Заказ ${result.order_id} создан!`);
+            return result;
+        } else {
+            throw new Error(result.error || 'Ошибка сервера');
+        }
+    } catch (error) {
+        console.error('Ошибка отправки заказа:', error);
+        showNotification(`❌ Ошибка: ${error.message}`);
+        throw error;
+    }
 }
 
 // Рендеринг продуктов
 function renderProducts(category = 'all') {
     const productsGrid = document.getElementById('productsGrid');
+    if (!productsGrid) return;
+    
     let filteredProducts = products;
     
     if (category !== 'all') {
@@ -167,59 +216,19 @@ function renderProducts(category = 'all') {
     `).join('');
 }
 
-// Загрузка меню с сервера (опционально)
-async function loadMenuFromServer() {
-    try {
-        const response = await fetch(`${SERVER_URL}/menu`);
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.menu) {
-                // Можно обновить products с сервера
-                console.log('Меню загружено с сервера:', data.menu);
-            }
-        }
-    } catch (error) {
-        console.log('Используем локальное меню');
-    }
-}
-
-// Функция отправки заказа на сервер
-async function sendOrderToServer(orderData) {
-    try {
-        showNotification("📤 Отправляем заказ...");
-        
-        const response = await fetch(`${SERVER_URL}/create_order`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(orderData)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showNotification(`✅ Заказ ${result.order_id} создан!`);
-            return result;
-        } else {
-            throw new Error(result.error || 'Ошибка сервера');
-        }
-    } catch (error) {
-        console.error('Ошибка отправки заказа:', error);
-        showNotification(`❌ Ошибка: ${error.message}`);
-        throw error;
-    }
-}
-
 // Настройка обработчиков событий
 function setupEventListeners() {
     // Кнопка меню
-    document.getElementById('menuBtn').addEventListener('click', toggleMenu);
-    document.getElementById('closeMenu').addEventListener('click', toggleMenu);
+    const menuBtn = document.getElementById('menuBtn');
+    const closeMenu = document.getElementById('closeMenu');
+    if (menuBtn) menuBtn.addEventListener('click', toggleMenu);
+    if (closeMenu) closeMenu.addEventListener('click', toggleMenu);
     
     // Кнопка корзины
-    document.getElementById('cartBtn').addEventListener('click', toggleCart);
-    document.getElementById('closeCart').addEventListener('click', toggleCart);
+    const cartBtn = document.getElementById('cartBtn');
+    const closeCart = document.getElementById('closeCart');
+    if (cartBtn) cartBtn.addEventListener('click', toggleCart);
+    if (closeCart) closeCart.addEventListener('click', toggleCart);
     
     // Категории
     document.querySelectorAll('.category-btn').forEach(btn => {
@@ -232,18 +241,23 @@ function setupEventListeners() {
     });
     
     // Затемнение фона
-    document.getElementById('overlay').addEventListener('click', function() {
-        closeAllPanels();
-    });
+    const overlay = document.getElementById('overlay');
+    if (overlay) overlay.addEventListener('click', closeAllPanels);
     
     // Оформление заказа
-    document.getElementById('checkoutBtn').addEventListener('click', openOrderModal);
-    document.getElementById('closeModal').addEventListener('click', closeOrderModal);
-    document.getElementById('cancelOrder').addEventListener('click', closeOrderModal);
-    document.getElementById('confirmOrder').addEventListener('click', confirmOrder);
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    const closeModal = document.getElementById('closeModal');
+    const cancelOrder = document.getElementById('cancelOrder');
+    const confirmOrderBtn = document.getElementById('confirmOrder');
+    
+    if (checkoutBtn) checkoutBtn.addEventListener('click', openOrderModal);
+    if (closeModal) closeModal.addEventListener('click', closeOrderModal);
+    if (cancelOrder) cancelOrder.addEventListener('click', closeOrderModal);
+    if (confirmOrderBtn) confirmOrderBtn.addEventListener('click', confirmOrder);
     
     // Выход
-    document.getElementById('logoutBtn').addEventListener('click', logout);
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
     
     // Динамические обработчики для продуктов
     document.addEventListener('click', function(e) {
@@ -327,20 +341,23 @@ function updateCart() {
 
 function updateCartCount() {
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    document.getElementById('cartCount').textContent = totalItems;
+    const cartCount = document.getElementById('cartCount');
+    if (cartCount) cartCount.textContent = totalItems;
 }
 
 function renderCartItems() {
     const cartItems = document.getElementById('cartItems');
     const emptyCart = document.getElementById('emptyCart');
     
+    if (!cartItems) return;
+    
     if (cart.length === 0) {
-        emptyCart.style.display = 'block';
+        if (emptyCart) emptyCart.style.display = 'block';
         cartItems.innerHTML = '';
         return;
     }
     
-    emptyCart.style.display = 'none';
+    if (emptyCart) emptyCart.style.display = 'none';
     
     cartItems.innerHTML = cart.map(item => `
         <div class="cart-item">
@@ -365,32 +382,40 @@ function renderCartItems() {
 
 function updateTotalPrice() {
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    document.getElementById('totalPrice').textContent = `${total} ₽`;
-    document.getElementById('finalTotal').textContent = `${total} ₽`;
+    const totalPrice = document.getElementById('totalPrice');
+    const finalTotal = document.getElementById('finalTotal');
+    
+    if (totalPrice) totalPrice.textContent = `${total} ₽`;
+    if (finalTotal) finalTotal.textContent = `${total} ₽`;
 }
 
 // Управление панелями
 function toggleMenu() {
     const menu = document.getElementById('sideMenu');
     const overlay = document.getElementById('overlay');
-    menu.classList.toggle('active');
-    overlay.classList.toggle('active');
+    if (menu) menu.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('active');
 }
 
 function toggleCart() {
     const cartPanel = document.getElementById('cartPanel');
     const overlay = document.getElementById('overlay');
-    cartPanel.classList.toggle('active');
-    overlay.classList.toggle('active');
+    if (cartPanel) cartPanel.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('active');
     renderCartItems();
     updateTotalPrice();
 }
 
 function closeAllPanels() {
-    document.getElementById('sideMenu').classList.remove('active');
-    document.getElementById('cartPanel').classList.remove('active');
-    document.getElementById('overlay').classList.remove('active');
-    document.getElementById('orderModal').classList.remove('active');
+    const sideMenu = document.getElementById('sideMenu');
+    const cartPanel = document.getElementById('cartPanel');
+    const overlay = document.getElementById('overlay');
+    const orderModal = document.getElementById('orderModal');
+    
+    if (sideMenu) sideMenu.classList.remove('active');
+    if (cartPanel) cartPanel.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+    if (orderModal) orderModal.classList.remove('active');
 }
 
 // Оформление заказа
@@ -402,9 +427,11 @@ function openOrderModal() {
     
     const modal = document.getElementById('orderModal');
     const overlay = document.getElementById('overlay');
+    const orderSummary = document.getElementById('orderSummary');
+    
+    if (!modal || !overlay || !orderSummary) return;
     
     // Обновляем информацию о заказе
-    const orderSummary = document.getElementById('orderSummary');
     orderSummary.innerHTML = cart.map(item => `
         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <span>${item.name} × ${item.quantity}</span>
@@ -412,48 +439,46 @@ function openOrderModal() {
         </div>
     `).join('');
     
-    // Заполняем телефон пользователя из Telegram, если доступен
-    const user = tg.initDataUnsafe?.user;
-    if (user && user.username) {
-        document.getElementById('phone').value = `+7`;
-    }
-    
     modal.classList.add('active');
     overlay.classList.add('active');
 }
 
 function closeOrderModal() {
-    document.getElementById('orderModal').classList.remove('active');
-    document.getElementById('overlay').classList.remove('active');
+    const modal = document.getElementById('orderModal');
+    const overlay = document.getElementById('overlay');
+    
+    if (modal) modal.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
 }
 
 async function confirmOrder() {
-    const address = document.getElementById('address').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const comment = document.getElementById('comment').value.trim();
+    const address = document.getElementById('address');
+    const phone = document.getElementById('phone');
+    const comment = document.getElementById('comment');
     
-    if (!address) {
+    if (!address || !phone) {
+        showNotification('Ошибка: форма не найдена');
+        return;
+    }
+    
+    const addressValue = address.value.trim();
+    const phoneValue = phone.value.trim();
+    const commentValue = comment ? comment.value.trim() : '';
+    
+    if (!addressValue) {
         showNotification('Введите адрес доставки!');
         return;
     }
     
-    if (!phone) {
+    if (!phoneValue) {
         showNotification('Введите номер телефона!');
         return;
     }
     
     // Проверяем, есть ли данные пользователя
     if (!window.userData) {
-        const user = tg.initDataUnsafe?.user;
-        if (!user) {
-            showNotification('Ошибка: данные пользователя не найдены');
-            return;
-        }
-        window.userData = {
-            id: user.id,
-            name: user.first_name || user.username || 'Пользователь',
-            username: user.username || ''
-        };
+        showNotification('Данные пользователя не найдены. Откройте приложение через Telegram бота.');
+        return;
     }
     
     // Формируем данные для отправки
@@ -461,9 +486,9 @@ async function confirmOrder() {
         user_id: window.userData.id,
         user_name: window.userData.name,
         username: window.userData.username,
-        phone: phone,
-        address: address,
-        comment: comment,
+        phone: phoneValue,
+        address: addressValue,
+        comment: commentValue,
         items: cart.map(item => ({
             id: item.id,
             name: item.name,
@@ -472,6 +497,8 @@ async function confirmOrder() {
         })),
         total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     };
+    
+    console.log('Отправляю заказ:', orderData);
     
     try {
         // Показываем загрузку
@@ -486,14 +513,18 @@ async function confirmOrder() {
         localStorage.removeItem('cart');
         
         // Показываем успех
-        showNotification(`🎉 Заказ ${result.order_id} принят! Скоро с вами свяжутся.`);
+        showNotification(`🎉 Заказ ${result.order_id} принят!`);
         
         // Закрываем модальное окно
         closeOrderModal();
         
-        // Можно закрыть приложение через 3 секунды
+        // Закрываем приложение через 3 секунды
         setTimeout(() => {
-            tg.close();
+            if (tg && tg.close) {
+                tg.close();
+            } else {
+                showNotification('Заказ создан! Можете закрыть приложение.');
+            }
         }, 3000);
         
     } catch (error) {
@@ -504,14 +535,24 @@ async function confirmOrder() {
 
 // Выход
 function logout() {
-    tg.sendData(JSON.stringify({ action: 'logout' }));
-    tg.close();
+    if (tg && tg.sendData) {
+        tg.sendData(JSON.stringify({ action: 'logout' }));
+        tg.close();
+    } else {
+        showNotification('Выйдите из Telegram');
+    }
 }
 
 // Уведомления
 function showNotification(message) {
     const notification = document.getElementById('notification');
     const notificationText = document.getElementById('notificationText');
+    
+    if (!notification || !notificationText) {
+        console.log('Уведомление:', message);
+        alert(message);
+        return;
+    }
     
     notificationText.textContent = message;
     notification.classList.add('show');
@@ -521,19 +562,7 @@ function showNotification(message) {
     }, 3000);
 }
 
-// Закрытие приложения при нажатии кнопки "Назад" на Android
-window.addEventListener('popstate', function() {
-    tg.close();
-});
-
-// Автоматическое обновление каждые 5 минут (для поддержания сессии)
-setInterval(() => {
-    if (cart.length > 0) {
-        localStorage.setItem('cart', JSON.stringify(cart));
-    }
-}, 5 * 60 * 1000);
-
-// Проверка подключения к серверу при запуске
+// Проверка подключения к серверу
 async function checkServerConnection() {
     try {
         const response = await fetch(`${SERVER_URL}/health`);
@@ -541,10 +570,14 @@ async function checkServerConnection() {
             console.log('✅ Сервер доступен');
         }
     } catch (error) {
-        console.warn('⚠️ Сервер не отвечает, используется оффлайн-режим');
-        showNotification('Сервер временно недоступен, заказ будет сохранен локально');
+        console.warn('⚠️ Сервер не отвечает');
+        showNotification('Сервер временно недоступен');
     }
 }
 
-// Запускаем проверку при загрузке
-checkServerConnection();
+// Запускаем приложение когда DOM загружен
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
