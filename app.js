@@ -1,6 +1,10 @@
 // Telegram Web App интеграция
 const tg = window.Telegram.WebApp;
 
+// Конфигурация сервера
+// ⚠️ ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL С PYTHONANYWHERE!
+const SERVER_URL = "https://HeX04yXa.pythonanywhere.com";
+
 // Инициализация приложения
 document.addEventListener('DOMContentLoaded', function() {
     // Расширяем приложение на весь экран
@@ -31,9 +35,16 @@ function updateUserInfo(user) {
     
     document.getElementById('userName').textContent = userName;
     document.getElementById('userEmail').textContent = userEmail;
+    
+    // Сохраняем user данные для заказов
+    window.userData = {
+        id: user.id,
+        name: userName,
+        username: user.username || ''
+    };
 }
 
-// База данных продуктов
+// База данных продуктов (можно загружать с сервера)
 const products = [
     {
         id: 1,
@@ -125,6 +136,7 @@ function initApp() {
     renderProducts();
     setupEventListeners();
     updateCartCount();
+    loadMenuFromServer();
 }
 
 // Рендеринг продуктов
@@ -153,6 +165,50 @@ function renderProducts(category = 'all') {
             </div>
         </div>
     `).join('');
+}
+
+// Загрузка меню с сервера (опционально)
+async function loadMenuFromServer() {
+    try {
+        const response = await fetch(`${SERVER_URL}/menu`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.menu) {
+                // Можно обновить products с сервера
+                console.log('Меню загружено с сервера:', data.menu);
+            }
+        }
+    } catch (error) {
+        console.log('Используем локальное меню');
+    }
+}
+
+// Функция отправки заказа на сервер
+async function sendOrderToServer(orderData) {
+    try {
+        showNotification("📤 Отправляем заказ...");
+        
+        const response = await fetch(`${SERVER_URL}/create_order`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ Заказ ${result.order_id} создан!`);
+            return result;
+        } else {
+            throw new Error(result.error || 'Ошибка сервера');
+        }
+    } catch (error) {
+        console.error('Ошибка отправки заказа:', error);
+        showNotification(`❌ Ошибка: ${error.message}`);
+        throw error;
+    }
 }
 
 // Настройка обработчиков событий
@@ -356,6 +412,12 @@ function openOrderModal() {
         </div>
     `).join('');
     
+    // Заполняем телефон пользователя из Telegram, если доступен
+    const user = tg.initDataUnsafe?.user;
+    if (user && user.username) {
+        document.getElementById('phone').value = `+7`;
+    }
+    
     modal.classList.add('active');
     overlay.classList.add('active');
 }
@@ -365,7 +427,7 @@ function closeOrderModal() {
     document.getElementById('overlay').classList.remove('active');
 }
 
-function confirmOrder() {
+async function confirmOrder() {
     const address = document.getElementById('address').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const comment = document.getElementById('comment').value.trim();
@@ -380,34 +442,64 @@ function confirmOrder() {
         return;
     }
     
-    // Формируем данные заказа
-    const order = {
-        address,
-        phone,
-        comment,
-        items: cart,
-        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        timestamp: new Date().toISOString()
+    // Проверяем, есть ли данные пользователя
+    if (!window.userData) {
+        const user = tg.initDataUnsafe?.user;
+        if (!user) {
+            showNotification('Ошибка: данные пользователя не найдены');
+            return;
+        }
+        window.userData = {
+            id: user.id,
+            name: user.first_name || user.username || 'Пользователь',
+            username: user.username || ''
+        };
+    }
+    
+    // Формируем данные для отправки
+    const orderData = {
+        user_id: window.userData.id,
+        user_name: window.userData.name,
+        username: window.userData.username,
+        phone: phone,
+        address: address,
+        comment: comment,
+        items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+        })),
+        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     };
     
-    // Отправляем данные в Telegram
-    tg.sendData(JSON.stringify({
-        action: 'create_order',
-        order: order
-    }));
-    
-    // Показываем уведомление
-    showNotification('Заказ оформлен! Скоро с вами свяжутся.');
-    
-    // Очищаем корзину
-    cart = [];
-    updateCart();
-    closeOrderModal();
-    
-    // Закрываем приложение через 2 секунды
-    setTimeout(() => {
-        tg.close();
-    }, 2000);
+    try {
+        // Показываем загрузку
+        showNotification("⏳ Создаем заказ...");
+        
+        // Отправляем на сервер
+        const result = await sendOrderToServer(orderData);
+        
+        // Очищаем корзину
+        cart = [];
+        updateCart();
+        localStorage.removeItem('cart');
+        
+        // Показываем успех
+        showNotification(`🎉 Заказ ${result.order_id} принят! Скоро с вами свяжутся.`);
+        
+        // Закрываем модальное окно
+        closeOrderModal();
+        
+        // Можно закрыть приложение через 3 секунды
+        setTimeout(() => {
+            tg.close();
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Ошибка при создании заказа:', error);
+        showNotification('❌ Ошибка при создании заказа. Попробуйте еще раз.');
+    }
 }
 
 // Выход
@@ -440,3 +532,19 @@ setInterval(() => {
         localStorage.setItem('cart', JSON.stringify(cart));
     }
 }, 5 * 60 * 1000);
+
+// Проверка подключения к серверу при запуске
+async function checkServerConnection() {
+    try {
+        const response = await fetch(`${SERVER_URL}/health`);
+        if (response.ok) {
+            console.log('✅ Сервер доступен');
+        }
+    } catch (error) {
+        console.warn('⚠️ Сервер не отвечает, используется оффлайн-режим');
+        showNotification('Сервер временно недоступен, заказ будет сохранен локально');
+    }
+}
+
+// Запускаем проверку при загрузке
+checkServerConnection();
