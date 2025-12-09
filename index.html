@@ -1,6 +1,24 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+    // Проверка что Telegram Web App SDK загружен
+    window.addEventListener('load', function() {
+        if (!window.Telegram || !window.Telegram.WebApp) {
+            console.error('Telegram Web App SDK не загружен');
+            document.body.innerHTML = `
+                <div style="padding: 20px; text-align: center;">
+                    <h2>Откройте приложение через Telegram</h2>
+                    <p>Это приложение работает только внутри Telegram</p>
+                    <p>1. Найдите нашего бота в Telegram</p>
+                    <p>2. Нажмите кнопку "Меню"</p>
+                    <p>3. Или нажмите кнопку "Заказать"</p>
+                </div>
+            `;
+        }
+    });
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🍽️ Ресторан | Заказ еды</title>
@@ -204,3 +222,4 @@
     <script src="app.js"></script>
 </body>
 </html>
+
